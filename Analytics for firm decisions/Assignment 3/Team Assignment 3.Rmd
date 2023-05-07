@@ -17,6 +17,7 @@ cat('\014')
 
 library(psych)
 library(dplyr)
+library(ggplot2)
 ```
 
 ### Question 1: Data Description
@@ -56,16 +57,17 @@ sd_price_tide64 <- sd(detergent_DF$p_tide64)
 sd_price_wisk64 <- sd(detergent_DF$p_wisk64)
 ```
 
-: Table of marketshare (in percentage) and price statistics (in dollars)
+
+: Table of market share (in percentage) and price statistics (in dollars)
 
 +---------------+---------------+-------------+--------------+-----------+
-| Product       | Marketshare   | Mean Price  | Median Price | Std. Dev |          
+| Product       | Market share  | Mean Price  | Median Price | Std. Dev  |          
 +===============+===============+=============+==============+===========+
-| Tide 128 oz   |   0.568       |   8.363     |   8.476      |  0.760    |
+| Tide 128 oz   |   56.8%       |   8.363     |   8.476      |  0.760    |
 +---------------+---------------+-------------+--------------+-----------+
-| Tide 64 oz    |   0.263       |   4.375     |   4.419      |  0.404    |
+| Tide 64 oz    |   26.3%       |   4.375     |   4.419      |  0.404    |
 +---------------+---------------+-------------+--------------+-----------+
-| Wisk 64 oz    |   0.168       |   4.071     |   4.19       |  0.490    |
+| Wisk 64 oz    |   16.8%       |   4.072     |   4.190      |  0.490    |
 +---------------+---------------+-------------+--------------+-----------+
 
 
@@ -89,26 +91,41 @@ sd_p_gap_tide64_wisk64 <- sd(detergent_DF$p_gap_tide64_wisk64)
 +----------------------------+-------------+-------------+--------------+
 | Gap                        |    Mean     |   Median    |  Std. Dev    |        
 +============================+=============+=============+==============+
-| Tide 128 oz & Tide 64 oz   |    3.987    |   4.094     |   0.870      |
+| Tide 128 oz & Tide 64 oz   |    3.988    |   4.094     |   0.870      |
 +----------------------------+-------------+-------------+--------------+
-| Tide 64 oz & Wisk 64 oz    |    0.303    |   0.260     |   0.585      |
+| Tide 64 oz & Wisk 64 oz    |    0.303    |   0.261     |   0.586      |
 +----------------------------+-------------+-------------+--------------+
 
 Histograms of the price gaps
 ```{r}
-hist(detergent_DF$p_gap_tide128_64, 
-     main='Price Gap between Tide 128 oz & Tide 64 oz',
-     xlab='Price Gap ($)',
-     col='darkmagenta')
 
-hist(detergent_DF$p_gap_tide64_wisk64, 
-     main='Price Gap between Tide 64 oz & Wisk 64 oz',
-     xlab='Price Gap ($)',
-     col='cyan2')
+
+ggplot(detergent_DF, aes(x = p_gap_tide128_64)) +
+  geom_histogram(binwidth = 1, fill = "darkmagenta", color = "black") +
+  stat_bin(binwidth = 1, geom = "text", aes(label = after_stat(count), y = after_stat(count)), vjust = -0.5, size = 3) +
+  labs(x = "Price Gap ($)", y = "Frequency", title = "Price Gap between Tide 128 oz & Tide 64 oz") +
+  theme_minimal() +
+  theme(panel.grid.major = element_line(colour = "gray", linetype = "dotted"),
+        plot.title = element_text(face = "bold", size = 15, hjust = 0.5),
+            axis.title.x = element_text(size = 15),
+        axis.title.y = element_text(size = 15))
+
+
+ggplot(detergent_DF, aes(x = p_gap_tide64_wisk64)) +
+  geom_histogram(binwidth = 1, fill = "cyan2", color = "black") +
+  stat_bin(binwidth = 1, geom = "text", aes(label = after_stat(count), y = after_stat(count)), vjust = -0.5, size = 3) +
+  labs(x = "Price Gap ($)", y = "Frequency", title = "Price Gap between Tide 64 oz & Wisk 64 oz") +
+  theme_minimal() +
+  theme(panel.grid.major = element_line(colour = "gray", linetype = "dotted"),
+        plot.title = element_text(face = "bold", size = 15, hjust = 0.5),
+            axis.title.x = element_text(size = 15),
+        axis.title.y = element_text(size = 15))
+
 ```
 
-According to the first histogram, We observe that there is enough variation of the price gap between Tide 128oz and Tide 64oz as there are histogram bars spread away from the mean.  
-According to the second histogram, there is not enough variation of the price gap between Tide 128oz and Tide 64oz, as the histogram bars are less spread away from the mean.
+The distribution of the price variation between Tide 128oz and Tide 64oz is approximately a normal distribution. The coefficient of variation is ~20% indicating that relatively the deviation is low and most prices are distributed around mean price of roughly 4. The range of the distribution is from -0.1 to 7.2.
+
+The distribution of the price variation between Tide 64oz and Whisk 64oz is a right skewed distribution. The coefficient of variation is ~190% indicating that relatively the deviation is high and most prices are distributed to the left of mean price of roughly 0.3. The range of the distribution is from -3.52 to 2.96.
 
 
 ### Question 2: Demand Estimation
