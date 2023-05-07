@@ -1,0 +1,315 @@
+---
+title: 'Assignment 3'
+author: "Team 7 - Aakash and Noufris"
+date: "May 2023"
+output: word_document
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Clean the environment and import libraries
+```{r}
+rm(list = ls())
+cat('\014')
+
+library(psych)
+library(dplyr)
+```
+
+### Question 1: Data Description
+Loading data
+
+```{r}
+load ('C:\\Users\\Aakash\\Desktop\\UW Courses\\Codes_MSBA\\Analytics for firm decisions\\Assignment 3\\Detergent.RData')
+
+```
+Describing data
+
+```{r}
+describe(detergent_DF)
+
+```
+Creating total sales per week for each detergent
+
+```{r}
+detergent_DF$weekly_sales_tide128 <- detergent_DF$q_tide128*detergent_DF$p_tide128
+detergent_DF$weekly_sales_tide64 <- detergent_DF$q_tide64*detergent_DF$p_tide64
+detergent_DF$weekly_sales_wisk64 <- detergent_DF$q_wisk64*detergent_DF$p_wisk64
+
+total_sales <- sum(c(detergent_DF$weekly_sales_tide128, detergent_DF$weekly_sales_tide64, detergent_DF$weekly_sales_wisk64))
+
+marketshare_tide128 <- sum(detergent_DF$weekly_sales_tide128)/total_sales
+marketshare_tide64 <- sum(detergent_DF$weekly_sales_tide64)/total_sales
+marketshare_wisk64 <- sum(detergent_DF$weekly_sales_wisk64)/total_sales
+
+mean_price_tide128 <- mean(detergent_DF$p_tide128)
+median_price_tide128 <- median(detergent_DF$p_tide128)
+mean_price_tide64 <- mean(detergent_DF$p_tide64)
+median_price_tide64 <- median(detergent_DF$p_tide64)
+mean_price_wisk64 <- mean(detergent_DF$p_wisk64)
+median_price_wisk64 <- median(detergent_DF$p_wisk64)
+sd_price_tide128 <- sd(detergent_DF$p_tide128)
+sd_price_tide64 <- sd(detergent_DF$p_tide64)
+sd_price_wisk64 <- sd(detergent_DF$p_wisk64)
+```
+
+: Table of marketshare (in percentage) and price statistics (in dollars)
+
++---------------+---------------+-------------+--------------+-----------+
+| Product       | Marketshare   | Mean Price  | Median Price | Std. Dev |          
++===============+===============+=============+==============+===========+
+| Tide 128 oz   |   0.568       |   8.363     |   8.476      |  0.760    |
++---------------+---------------+-------------+--------------+-----------+
+| Tide 64 oz    |   0.263       |   4.375     |   4.419      |  0.404    |
++---------------+---------------+-------------+--------------+-----------+
+| Wisk 64 oz    |   0.168       |   4.071     |   4.19       |  0.490    |
++---------------+---------------+-------------+--------------+-----------+
+
+
+Creating the price gaps between products
+```{r}
+detergent_DF$p_gap_tide128_64 <- detergent_DF$p_tide128-detergent_DF$p_tide64
+detergent_DF$p_gap_tide64_wisk64 <- detergent_DF$p_tide64-detergent_DF$p_wisk64
+
+mean_p_gap_tide128_64 <- mean(detergent_DF$p_gap_tide128_64)
+median_p_gap_tide128_64 <- median(detergent_DF$p_gap_tide128_64)
+sd_p_gap_tide128_64 <- sd(detergent_DF$p_gap_tide128_64)
+
+mean_p_gap_tide64_wisk64 <- mean(detergent_DF$p_gap_tide64_wisk64)
+median_p_gap_tide64_wisk64 <- median(detergent_DF$p_gap_tide64_wisk64)
+sd_p_gap_tide64_wisk64 <- sd(detergent_DF$p_gap_tide64_wisk64)
+
+```
+
+: Table of the mean, median, and std. dev. of the two price gap variables
+
++----------------------------+-------------+-------------+--------------+
+| Gap                        |    Mean     |   Median    |  Std. Dev    |        
++============================+=============+=============+==============+
+| Tide 128 oz & Tide 64 oz   |    3.987    |   4.094     |   0.870      |
++----------------------------+-------------+-------------+--------------+
+| Tide 64 oz & Wisk 64 oz    |    0.303    |   0.260     |   0.585      |
++----------------------------+-------------+-------------+--------------+
+
+Histograms of the price gaps
+```{r}
+hist(detergent_DF$p_gap_tide128_64, 
+     main='Price Gap between Tide 128 oz & Tide 64 oz',
+     xlab='Price Gap ($)',
+     col='darkmagenta')
+
+hist(detergent_DF$p_gap_tide64_wisk64, 
+     main='Price Gap between Tide 64 oz & Wisk 64 oz',
+     xlab='Price Gap ($)',
+     col='cyan2')
+```
+
+According to the first histogram, We observe that there is enough variation of the price gap between Tide 128oz and Tide 64oz as there are histogram bars spread away from the mean.  
+According to the second histogram, there is not enough variation of the price gap between Tide 128oz and Tide 64oz, as the histogram bars are less spread away from the mean.
+
+
+### Question 2: Demand Estimation
+Construct the sales velocity for each of Tide 64 and Tide 128
+
+```{r}
+detergent_DF$velocity_tide128 <- detergent_DF$q_tide128/detergent_DF$acv
+detergent_DF$velocity_tide64 <- detergent_DF$q_tide64/detergent_DF$acv
+```
+The purpose of driving the unit sales by ACV is to capture how price affects the demand in sales volume.
+If a store with low ACV sells the products at a higher price relatively to other stores, it doesn't mean that the market is seeing a higher price.
+It means that a small portion of the market exposed to this store is seeing a high price.
+
+
+Estimate log-linear demand models for the two Tide products by regressing the log of velocity on all
+prices (own and competing products)
+```{r}
+reg_tide128 <- lm(formula = log(velocity_tide128) ~ log(p_tide128) + log(p_tide64) + log(p_wisk64), 
+                  data = detergent_DF)
+reg_tide64 <- lm(formula = log(velocity_tide64) ~ log(p_tide128) + log(p_tide64) + log(p_wisk64), 
+                  data = detergent_DF)
+
+reg_tide128
+reg_tide64
+```
+According to the regression results of Tide 128 oz, we observe that the product is highly elastic to its own price changes having an own price elasticity of -4.5971. 
+In addition, a price increase of Tide 64 oz will lead to increased demand of Tide 128 oz (cross price elasticity of 0.2867). Moreover, a price increase of Wisk 64 oz will lead to increased demand of Tide 128 oz (cross price elasticity of 0.1514).
+We observe that a price change of Tide 64 oz has a bigger effect on the demand of Tide 128 oz than a price change of Wisk 64 oz.
+
+According to the regression results of Tide 64 oz, we observe that the product is highly elastic to its own price changes having an own price elasticity of -3.7486. 
+In addition, a price increase of Tide 128 oz will lead to increased demand of Tide 64 oz (cross price elasticity of 1.4479). Moreover, a price increase of Wisk 64 oz will lead to decreased demand of Tide 64 oz (cross price elasticity of -0.8755).
+We observe that a price change of Tide 128 oz has a positive effect on the demand of Tide 64 oz,
+whereas a price change of Wisk 64 has a negative effect on the demand of Tide 64 oz.
+
+### Question 3: Time Trend
+Re-estimate the log-linear demand models for the two Tide products including a time trend
+
+```{r}
+reg_tide128_time <- lm(formula = log(velocity_tide128) ~ log(p_tide128) + log(p_tide64) + 
+                         log(p_wisk64) + week, data = detergent_DF)
+reg_tide64_time <- lm(formula = log(velocity_tide64) ~ log(p_tide128) + log(p_tide64) + 
+                         log(p_wisk64) + week, data = detergent_DF)
+
+reg_tide128_time
+reg_tide64_time
+```
+On the one hand, according to the regression results of Tide 128 oz, we observe there is a very small negative trend with time in demand.
+On the other hand, there is a change in price elasticities of the model.
+More specifically, we observe that the own price elasticity is -4.7716. 
+In addition, the cross price elasticity of Tide 64 oz on Tide 128 oz is 0.2934.
+Finally, the cross price elasticity of Wisk 64 oz on Tide 128 oz is 0.6294, 4 times greater than the previous model.
+Based on the regression results, a price change of Wisk 64 oz has a bigger effect on the demand of Tide 128 oz than a price change of Tide 64 oz.
+
+As for the second regression model for Tide 64 oz, we observe there is a very small negative trend with time in demand.
+On the other han. there is a change in price elasticities of the model.
+More specifically, we observe that the own price elasticity is -3.7314. 
+In addition, the cross price elasticity of Tide 128 oz on Tide 64 oz is 1.002.
+Finally, the cross price elasticity of Wisk 64 oz on Tide 64 oz is 0.3454 having a positive effect on demand, whereas the cross price elasticity of Wisk 64 oz on Tide 64 oz in the previous model had a negative effect on demand.
+
+### Question 4: Focus on Non-Promoted Weeks
+Fraction of store-weeks where at least one of the detergents was promoted
+
+```{r}
+mean(detergent_DF$promoflag)
+```
+Create a new dataframe including the non-promoted store-weeks
+
+```{r}
+detergent_DF_2 = subset(detergent_DF, promoflag != 1)
+```
+Re-estimate the log-linear demand models with a time-trend for the two Tide products only using
+data from non-promoted store-weeks
+
+```{r}
+reg_tide128_time_nonpromoted <- lm(formula = log(velocity_tide128) ~ log(p_tide128) + log(p_tide64) + 
+                         log(p_wisk64) + week, data = detergent_DF_2)
+reg_tide64_time_nonpromoted <- lm(formula = log(velocity_tide64) ~ log(p_tide128) + log(p_tide64) + 
+                         log(p_wisk64) + week, data = detergent_DF_2)
+
+reg_tide128_time_nonpromoted
+reg_tide64_time_nonpromoted
+```
+
+According to the regression results of Tide 128 oz without promotions, we observe the following:
+1. A very small negative trend with time in demand.
+2. The magnitude of own price elasticity decreases, being -3.5. 
+3. The magnitude of cross price elasticity of Tide 64 oz on Tide 128 oz decreases, being 0.1158 but having a negative effect on the demand.
+4. The magnitude of the cross price elasticity of Wisk 64 oz on Tide 128 oz increases, being 0.7141 and having a positive effect on the demand.
+
+Based on the regression results, this model makes more sense for the following reasons:
+1. Without having any promotions, the magnitude of the own price elasticity is less excessive. 
+2. A price change of Tide 64 oz has a smaller effect on the demand of Tide 128 oz than the previous model.
+
+According to the regression results of Tide 64 oz without promotions, we observe the following:
+1. A very small negative trend with time in demand.
+2. The magnitude of own price elasticity decreases, being -1.7018. 
+3. The magnitude of cross price elasticity of Tide 128 oz on Tide 64 oz decreases, being 0.2675 and having a positive effect on the demand.
+4. The magnitude of the cross price elasticity of Wisk 64 oz on Tide 64 oz increases, being -0.5189 but having a negative effect on the demand.
+
+Based on the regression results, this model makes more sense for the following reasons:
+1. Without having any promotions, the magnitude of the own price elasticity is less excessive. 
+2. A price change of Tide 128 oz has a smaller effect on the demand of Tide 64 oz than the previous model.
+
+### Question 5: Store Fixed Effects
+Re-estimate the log-linear demand models for the two Tide products including a time trend and store
+fixed effects using the data for the non-promoted store-weeks
+
+```{r}
+library(broom)
+library(knitr)
+```
+
+```{r}
+reg_tide128_time_nonpromoted_fixed <- lm(formula = log(velocity_tide128) ~ log(p_tide128) + log(p_tide64) +
+                                           log(p_wisk64) + week + factor(store), data = detergent_DF_2)
+reg_tide64_time_nonpromoted_fixed <- lm(formula = log(velocity_tide64) ~ log(p_tide128) + log(p_tide64) +
+                                           log(p_wisk64) + week + factor(store), data = detergent_DF_2)
+
+lm_DF_tide128 <- tidy(reg_tide128_time_nonpromoted_fixed)
+lm_DF_tide64 <- tidy(reg_tide64_time_nonpromoted_fixed)
+
+kable(lm_DF_tide128[1:5,], digits = 4)
+kable(lm_DF_tide64[1:5,], digits = 4)
+```
+Yes, the estimates of own and cross price elasticities reveal an improvement over the model specification
+in question 4. 
+For the regression results of Tide 128 oz, we have the following:
+1. The magnitude of own price elasticity decreases more, being -2.3836. It is less extreme.
+2. The cross price elasticity of Tide 64 oz on Tide 128 oz is 0.2097 having a positive effect on the demand. That means when the price of Tide 64 oz increases, the demand of Tide 128 oz increases which makes sense (a Tide customer will choose a product of the same brand).
+3. The cross price elasticity of Wisk 64 oz on Tide 128 oz is 1.1648 having a positive effect on the demand. That means when the price of Wisk 64 oz increases, the demand of Tide 128 oz increases which makes sense (a Wisk customer will choose a premium brand when the price of a Wisk product increases).
+
+For the regression results of Tide 64 oz, we have the following:
+1. The magnitude of own price elasticity decreases more, being -1.4867.
+2. The cross price elasticity of Tide 128 oz on Tide 64 oz is 0.9028 having a positive effect on the demand. That means when the price of Tide 128 oz increases, the demand of Tide 64 oz increases which makes sense (a Tide customer will choose a product of the same brand).
+3. The cross price elasticity of Wisk 64 oz on Tide 64 oz is -0.2809 having a negative effect on the demand. That means when the price of Wisk 64 oz increases, the demand of Tide 64 oz decreases which does not make more sense as it indicates that these products are complementary and not substitutes.
+
+Compare the estimates to a slightly different regression with the log of unit sales, not log of velocity,
+as dependent variable
+```{r}
+reg_tide128_time_nonpromoted_fixed_2 <- lm(formula = log(q_tide128) ~ log(p_tide128) + log(p_tide64) +
+                                           log(p_wisk64) + week + factor(store), data = detergent_DF_2)
+reg_tide64_time_nonpromoted_fixed_2 <- lm(formula = log(q_tide64) ~ log(p_tide128) + log(p_tide64) +
+                                           log(p_wisk64) + week + factor(store), data = detergent_DF_2)
+
+lm_DF_tide128_2 <- tidy(reg_tide128_time_nonpromoted_fixed_2)
+lm_DF_tide64_2 <- tidy(reg_tide64_time_nonpromoted_fixed_2)
+
+kable(lm_DF_tide128_2[1:5,], digits = 4)
+kable(lm_DF_tide64_2[1:5,], digits = 4)
+```
+
+We observe that there is no difference between the results of the regression having the log of unit sales as the dependent variable and the results of the regression having the velocity as the dependent variable.
+This absence of difference is expected as we incorporate the store fixed effects in our model.
+
+### Question 6: Pricing and Profitability Analysis
+Calculate base (regular) prices, using the data for the non-promoted store-weeks
+```{r}
+base_price_tide128 <- mean(detergent_DF_2$p_tide128)
+base_price_tide128
+```
+```{r}
+base_price_tide64 <- mean(detergent_DF_2$p_tide64)
+base_price_tide64
+```
+Calculate the base volume as average yearly chain-level volume sales
+```{r}
+count_stores <- length(unique(detergent_DF_2$store))
+
+base_volume_tide128 <- count_stores*52*mean(detergent_DF_2$q_tide128)
+base_volume_tide128
+```
+```{r}
+base_volume_tide64 <- count_stores*52*mean(detergent_DF_2$q_tide64)
+base_volume_tide64
+```
+Average yearly base total profit for Tide (sum of profits for Tide 64 and Tide 128)
+```{r}
+retail_margin <- 0.25
+marginal_cost <- 0.027
+
+base_profit_tide128 <- base_volume_tide128*(base_price_tide128*(1-retail_margin)-marginal_cost)
+base_profit_tide64 <- base_volume_tide64*(base_price_tide64*(1-retail_margin)-marginal_cost)
+base_price_tide <- base_profit_tide128 + base_profit_tide64
+base_price_tide
+```
+Calculate the total new expected volume of Tide, i.e. the new volume of the 128 oz and 64 oz products,
+from the following price changes:
+
+A simultaneous 5 percent increase in the prices of Tide 128 and Tide 64
+```{r}
+del_price_128 <- 0.05
+del_price_64 <- 0.05
+
+intercept_tide128 <- reg_tide128_time_nonpromoted_fixed_2$coefficients[[1]]
+elasticity_tide128 <- reg_tide128_time_nonpromoted_fixed_2$coefficients[[2]]
+elasticity_cross_tide128_64 <- reg_tide128_time_nonpromoted_fixed_2$coefficients[[3]]
+
+intercept_tide64 <- reg_tide64_time_nonpromoted_fixed_2$coefficients[[1]]
+elasticity_tide64 <- reg_tide64_time_nonpromoted_fixed_2$coefficients[[3]]
+elasticity_cross_tide64_128 <- reg_tide64_time_nonpromoted_fixed_2$coefficients[[2]]
+
+demand_tide128_log <- intercept_tide128 + elasticity_tide128*log(-0.05) + elasticity_cross_tide128_64*log(0.05)
+
+```
