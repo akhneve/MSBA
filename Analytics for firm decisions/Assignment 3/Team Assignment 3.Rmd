@@ -432,4 +432,14 @@ expected_profit_4
 | -0.05         | 0.05          |   282954.2  |    247068    |    2457846    |
 +---------------+---------------+-------------+--------------+---------------+
 
+A 5% increase in price of both Tide products leads to an increase in profits by roughly 5% which gives the highest increase in profits. So there is a scope of increasing the price of both tide products.
+
+### Question 7: Summarize your findings on the main questions
+
+a. An increase in price of Tide 64 oz leads to increase in sales of Tide 128 oz. This makes sense as now the customers might think if they are paying more, they might as well buy a bigger pack. Although, it is not other way around, which also makes sense as the consumers who want to buy a bigger pack, won't go for a smaller pack and might just prefer to buy another product.
+
+b. For both Tide 64 oz and 128 oz, increase in price of Wisk 64 oz is leading to a lesser sales of our product. Which means that there is a chance our prices are also being increased. Hence, it is difficult to say of we face a competitive threat from Wisk.
+
+c. We believe that currently the pricing is done in reaction to competitors to make our product more apealing. This makes sense as we are able to see our prices go high when Wisk's prices are high. We should maybe change our pricing strategy to be value based pricing instead of competitor based.
+
 
