@@ -1,0 +1,137 @@
+---
+title: "Ex3_Mailan"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Loading data
+
+```{r}
+
+# Clear All Variables & Clear the Screen
+rm(list=ls())
+cat("\014")
+
+# Read in the Data
+data.adv = read.csv("Ex3_Data_R.csv")
+
+# Explore the data
+str(data.adv)
+summary(data.adv)
+```
+
+## PREPARE DATA
+ 
+
+```{r}
+
+# Create log Advertising
+data.adv$logTotal.Spent <- log(data.adv$Total.Spent)
+
+# Create Advertising^2
+data.adv$Total.Spent2 <- (data.adv$Total.Spent)^2
+
+# Create LAG Sales
+data.adv$lagVisitors <- c(NA, head(data.adv$Visitors, -1))
+
+# Display the data
+summary(data.adv)
+```
+
+## REGRESSION MODELS
+
+```{r}
+
+# Run the Regression (includes an INTERCEPT) 
+lm.model1 <- lm(Visitors ~ Total.Spent, data = data.adv)
+lm.model2 <- lm(Visitors ~ logTotal.Spent, data = data.adv)
+lm.model3 <- lm(Visitors ~ Total.Spent + Total.Spent2, data = data.adv)
+
+lm.model4 <- lm(Visitors ~ Total.Spent + lagVisitors, data = data.adv)
+lm.model5 <- lm(Visitors ~ logTotal.Spent + lagVisitors, data = data.adv)
+lm.model6 <- lm(Visitors ~ Total.Spent + Total.Spent2 + lagVisitors, data = data.adv)
+
+# Display Results
+summary(lm.model1)
+summary(lm.model2)
+summary(lm.model3)
+summary(lm.model4)
+summary(lm.model5)
+summary(lm.model6)
+```
+## REGRESSION MODEL WITHOUT OUTLIERS
+
+```{r}
+# Read in the data
+data.adv2 = read.csv("Ex3_Data_R2.csv")
+
+# Run the Regression (includes an INTERCEPT) 
+lm.model1.2 <- lm(Visitors ~ Total.Spent, data = data.adv2)
+
+
+# Display Results
+summary(lm.model1.2)
+```
+
+## Advertising elasticity 
+```{r}
+# Linear model
+ad.coeff1 = unname(lm.model1$coefficients[2], force = FALSE)
+elas1 = ad.coeff1*mean(tail(data.adv$Total.Spent,5))/mean(tail(data.adv$Visitors,5))
+elas1
+```
+
+```{r}
+# Concave model
+ad.coeff2 = unname(lm.model2$coefficients[2], force = FALSE)
+elas2 = ad.coeff2/mean(tail(data.adv$Visitors,5))
+elas2
+```
+```{r}
+# Concave quadratic model
+ad.coeff3 = unname(lm.model3$coefficients[2], force = FALSE)
+ad2.coeff3 = unname(lm.model3$coefficients[3], force = FALSE)
+elas3 = (ad.coeff3 + 2*ad2.coeff3*mean(tail(data.adv$Total.Spent,5)))*mean(tail(data.adv$Total.Spent,5))/ mean(tail(data.adv$Visitors,5))
+elas3
+```
+
+```{r}
+# Linear model with carry-over effects
+ad.coeff4 = unname(lm.model4$coefficients[2], force = FALSE)
+lag.visitors.coeff4 = unname(lm.model4$coefficients[3], force = FALSE)
+elas4 = (ad.coeff4 / (1-lag.visitors.coeff4))* mean(tail(data.adv$Total.Spent,5))/mean(tail(data.adv$Visitors,5))
+elas4
+```
+```{r}
+# Concave model with carry-over effects
+ad.coeff5 = unname(lm.model5$coefficients[2], force = FALSE)
+lag.visitors.coeff5 = unname(lm.model5$coefficients[3], force = FALSE)
+elas5 = (ad.coeff5 / (1-lag.visitors.coeff5))/mean(tail(data.adv$Visitors,5))
+elas5
+```
+```{r}
+# Concave quadratic model with carry-over effects
+ad.coeff6 = unname(lm.model6$coefficients[2], force = FALSE)
+ad2.coeff6 = unname(lm.model6$coefficients[3], force = FALSE)
+lag.visitors.coeff6 = unname(lm.model6$coefficients[4], force = FALSE)
+elas6 = ((ad.coeff6 + 2*ad2.coeff6*mean(tail(data.adv$Total.Spent,5))) / (1-lag.visitors.coeff6)) * mean(tail(data.adv$Total.Spent,5))/ mean(tail(data.adv$Visitors,5))
+elas6
+```
+## Advertising saturation levels 
+```{r}
+# Concave quadratic model
+ad.coeff3 = unname(lm.model3$coefficients[2], force = FALSE)
+ad2.coeff3 = unname(lm.model3$coefficients[3], force = FALSE)
+saturation3 = - ad.coeff3 / (2*ad2.coeff3)
+saturation3
+```
+```{r}
+# Concave quadratic model with carry-over effects
+ad.coeff6 = unname(lm.model6$coefficients[2], force = FALSE)
+ad2.coeff6 = unname(lm.model6$coefficients[3], force = FALSE)
+saturation6 = - ad.coeff6 / (2*ad2.coeff6)
+saturation6
+```

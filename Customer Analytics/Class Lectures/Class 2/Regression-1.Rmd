@@ -1,0 +1,17 @@
+## REGRESSION MODELS
+
+1) Define y (Dependent Variable). For this example, we have Y (e.g., sales).
+
+2) Define X (Independent Variables). For this example, we have X1, X2 and X3 (some marketing measures, e.g., price, advertising)
+
+3) Run the Models. For example, a linear model where Sales (Y) is a function of X1, X2 and X3
+
+```{r}
+
+# Run the Regression (includes an INTERCEPT)
+lm.model1 <- lm(Y ~ X1 + X3 + X2, data = data.price)
+
+
+# Display Results
+summary(lm.model1)
+```

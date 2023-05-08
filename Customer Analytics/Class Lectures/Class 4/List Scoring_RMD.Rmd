@@ -1,0 +1,236 @@
+---
+title: "List Scoring"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## First Steps 
+
+NOTE: Your data needs to be in the folder where your code is located!
+
+The first Chunk of Code will always do 3 Things for us
+
+1) Clear ALL Variables (to make sure nothing is "left over") and clear the  screen. 
+2) Read in the data we want to use. In our case the file is called "Data_List Scoring_R.csv"
+3) Explore the data (what variables are in it and what are some basic statistics for these variables)
+
+
+```{r}
+
+# Clear All Variables & Clear Screen
+rm(list=ls())
+cat("\014")
+
+# Read in the Data
+data.list = read.csv("Data_List Scoring_R.csv")
+
+# Explore the data
+str(data.list)
+summary(data.list)
+
+```
+
+
+
+## BINARY LOGIT MODEL 
+
+We will run our model on the TRAINING Data (i.e, using the FIRST 200 IDs)
+
+1) Define y (Dependent Variable). For this example, y_Response (a consumer either buys or not) is used
+
+2) Define X (Independent Variables). For this example, x1_Gender, x2_Hotline1 and x3_Hotline2 are used
+
+3) Run the Model. For example, a model where response (y_response) is a function of gender (x1_gender), Hotline1 (x2_Hotline1), and Hotline2 (x3_Hotline2)
+
+
+```{r}
+
+# Define TRAINING Data (i.e, using the FIRST 200 IDs)
+data.training <- data.list[1:200,]
+
+# Run the Binary Logit Model (includes an INTERCEPT)
+glm.model <- glm(y_Response ~ x1_Gender+ x2_Hotline1+ x3_Hotline2, family=binomial(link='logit'), data=data.training)
+
+# Display Results
+summary(glm.model)
+
+```
+
+
+
+## SCORING the TESTING Data 
+
+Use the TESTING data (i.e., IDs 201-500 which are NOT used for estimation) to predict the buy/no buy decision for each of the 300 IDs in the TESTING sample
+
+
+```{r}
+
+# Define TESTING Data (i.e, IDs 201-500)
+data.testing <- data.list[201:500,]
+
+# Predicting Buy/No Buy for the 300 TESTING IDs based on the Model Estimates
+(prediction.testing <- data.frame(ID = data.testing$ID, 
+                                  BinaryLogitProbability = predict(glm.model, data.testing, type = c("response")),
+                                  BinaryLogitPredict     = round(predict(glm.model, data.testing, type = c("response")), digits = 0)))
+
+# Add Real Response
+prediction.testing$y_Response = data.testing$y_Response
+
+# Add Lift to the Forecast. Recall lift is simply the predicted response rate divided by the average response rate of the Training sample
+prediction.testing$lift = prediction.testing$BinaryLogitProbability/mean(data.training$y)
+
+# Prediciton of Number of Buyers
+sum(prediction.testing["BinaryLogitPredict"])
+sum(prediction.testing["BinaryLogitProbability"])
+
+# Histogram of Props
+hist(prediction.testing$BinaryLogitProbability, main = paste("Histogram of Response Probs"), xlab = "Prob of Response")
+
+# Confusion Matrix
+library(gmodels)
+CrossTable(data.testing$y_Response, prediction.testing$BinaryLogitPredict,prop.r=TRUE, prop.c=FALSE, prop.t=FALSE,
+           prop.chisq=FALSE, dnn = c("Real Response", "Predicted Response"))
+
+# Exporting the Predictions to Excel
+# You can open a csv file in xl
+write.csv(prediction.testing, file = "Prediction_Testing.csv")
+
+
+# Creating a Response Probability Chart
+# First need to sort by response (best to worst), so we need to sort by "-probability" as it by default sort from smallest to largest
+prediction.testing.ResponseSort <- prediction.testing[order(-prediction.testing$BinaryLogitProbability),]
+
+# Now we can make a plot of the response rate by number of prospects targeted
+plot(prediction.testing.ResponseSort$BinaryLogitProbability, main="Marginal Response Rate",
+   xlab="#Prospects", ylab="Response Rate")
+
+# Expected Responses
+best.model <-data.frame(matrix(ncol = 2, nrow = 1))
+
+CumulativeSum <-data.frame(matrix(ncol = 2, nrow = 300))
+CumulativeSum$y_predicted = cumsum(prediction.testing.ResponseSort$BinaryLogitProbability)
+CumulativeSum$y_real = cumsum(prediction.testing.ResponseSort$y_Response)
+
+plot(CumulativeSum$y_predicted,
+ylim =c(0, 41),
+main="(Expected) Sales",
+xlab="#Prospects", ylab="Sales",
+type="l",
+col="blue")
+lines(CumulativeSum$y_real, col="green")
+legend("bottomright",
+c("Predicted Responses","Real Responses"),
+fill=c("blue","green")
+)
+
+```
+
+
+
+## MONETARY VALUE OF SCORING 
+
+Use the Predicted Buying Probabilities with the Campaign Economics to evaluate the Profits of Scoring
+
+
+```{r}
+
+# Using Data from the slides
+# Cost per name $1 (you have already bought all names, otherwise cannot run a model)
+# Cost to target $6 (this is the decision we are trying to better inform using the model)
+# Expected revenue IF target BUYS: $30
+
+# -> This implies we would target everybody with a response rate above 0.2 using the MARGINAL SUPPLY Rule (please see slides) 
+# 3 Cases: 1) Buy name and do NOT target: -$1, 2) Buy name, target and NO BUY: -$7 and 3) Buy name, target and BUY: +$23
+
+# Get number of the number of HH (nhh)
+# dim gets the dimensions of the array. [1] picks 1st, [2] second dimension
+nhh  = dim(prediction.testing)[1]
+
+# 1 Profit for targeting ALL consumers (this is our strawman, a very basic model to compare with)
+# Create a Dataframe for save the results in (300 HH and one profit each)
+targetall.profit = setNames(data.frame(matrix(ncol = 1, nrow = nhh)), c("Profit"))
+
+# Loop over all HH (in our case 300) and caculate the profit based on the model's predicted probabilities
+for (i in 1:nhh) {
+  
+  # Check whether the consumer did buy
+    if (data.testing$y_Response[i]> 0) 
+      {
+      # If they BUY $23 profit
+        targetall.profit[i,1] = 23
+      } 
+    else 
+      {
+      # If they do NOT BUY, $7 loss
+      targetall.profit[i,1] = -7
+      }
+}
+
+# Average Profit per name WITHOUT Scoring
+mean(targetall.profit[,1])
+
+# Total Profit per name WITHOUT Scoring
+sum(targetall.profit[,1])
+
+
+# 2 Profit using the scoring model
+# Create a Dataframe for save the results in (300 HH and one profit each)
+prediction.profit = setNames(data.frame(matrix(ncol = 1, nrow = nhh)), c("Profit"))
+
+# Loop over all HH (in our case 300) and caculate the profit based on the model's predicted probabilities
+for (i in 1:nhh) {
+  
+  # Check for predicted purchase probability > 0.2 
+    if (prediction.testing$BinaryLogitProbability[i]> 0.2) 
+      {
+      # We target these consumers. Now check whether they would have bought!
+      if(data.testing$y_Response[i]>0) 
+        {
+        # If they BUY $23 profit
+        prediction.profit[i,1] = 23
+        } 
+      else 
+        {
+        # If they do NOT BUY, $7 loss
+        prediction.profit[i,1] = -7
+        }
+      }
+      
+    # We do NOT target these consumers (their predicted purchase prob <0.2), we only pay for the name
+    else 
+      {
+      # We do NOT target and have a $1 loss for buying the name
+      prediction.profit[i,1] = -1
+      }
+}
+
+# Average Profit per name with Scoring
+mean(prediction.profit[,1])
+
+# Total Profit per name with Scoring
+sum(prediction.profit[,1])
+
+
+```
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

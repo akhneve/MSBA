@@ -1,0 +1,20 @@
+## PREPARE DATA
+ 
+In our case we have to create new variables: log(Advertising), Advertising^2, and Lag(Sales)
+
+```{r}
+
+# Create log Advertising (we have done this for price so look it up!)
+
+# Create Advertising^2
+...2 <- (....)^2
+
+# Create LAG Sales
+... <- c(NA, head(..., -1))
+
+# Display the data
+summary(...)
+```
+
+
+

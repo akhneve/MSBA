@@ -1,0 +1,13 @@
+## PREPARE DATA
+ 
+In our case we have to create new variables: log(Units) and log(Prices)
+
+```{r}
+
+# Create log UNITS
+data.price$logUNITS1 <- log(data.price$UNITS1)
+
+# Create log PRICES
+data.price$logPRICE1 <- log(data.price$PRICE1)
+```
+

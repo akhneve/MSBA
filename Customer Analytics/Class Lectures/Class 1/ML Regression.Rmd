@@ -1,0 +1,155 @@
+---
+title: "MLRegression"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+
+This code is giving an example how to estimate a regression given by y = a+b*x+eps, where eps~N(0,sigma^2) using Maximum Likelihood. 
+
+As discussed in class, alternatively one can use a package such as the lm package or, even simpler, use the fact that in a regression beta = (x'x)^-1*x'y.
+
+As part of this example we will simulate data, define a loss function and use the optimizer to find the estimates 
+
+
+
+## First Step
+
+Simulate data based on the basic Regression Model y=a+b*x+eps, where eps~N(0,sigma^2).  
+
+
+```{r}
+
+# Clear All Variables & Clear the Screen
+rm(list=ls())
+cat("\014")
+
+
+# Step 1: Make some x data (inputs). For simplicity we only have one x in this example
+nobs   <- 300
+data.x <- rnorm(n=nobs, mean = 2, sd = 2)
+
+
+# Step 2: Specify the true parameters of the model 
+a.true    <- 1   # Intercept
+b.true    <- 2   # Slope
+sig.true  <- 1   # Standard Deviation (sigma)
+
+
+# Step 3: Simulate the y (output) data using x and the model parameters (a,b,sigma)
+noise  <- rnorm(n = nobs, mean = 0, sd = sig.true)  # Generate noise
+data.y <- a.true + data.x * b.true + noise               # Add noise 
+
+
+# Step 4: Let’s look at the data:
+plot(data.y, data.x, main="Scatterplot",xlab="x ", ylab="y ", pch=19)
+
+```
+
+
+
+## Second Step
+
+We need to define the Likelihood to be maximized and need to provide a Loss function that we can give to the optimizer
+This has to be a function of the parameters we want to estimate, in our case a(=1), b(=2) and sig(=1). 
+
+
+```{r}
+
+# Define Define the Loss Function
+lm.loss <- function(par) {
+  
+  a.par     <- par[1]  # The current intercept
+  b.par     <- par[2]  # The current slope
+  err.sigma <- par[3]  # The current error standard deviation
+  
+  
+  # One issue here is that par[3], the estimate for the standard deviation CANNOT be smaller than zero. We need to ensure that any solution of the optimizer that     suggest par[3]<0 is heavily penalzied (i.e., has a very high loss) and thus is not optimal. The following "if" loop ensures that.  
+  if(err.sigma < 0) {deviance <- 10000000}
+
+  
+  # If the error standard deviation is valid (i.e.; > 0), then calculate the deviance based on the likelihood
+  if(err.sigma > 0) {
+  
+    # Calculate the likelihood of each data point.
+    # Here is where you specify the model and how you calculate likelihoods.
+    likelihoods <- dnorm(data.y, mean =  a.par + data.x *b.par, sd = err.sigma)
+
+    
+    # Now let's convert the vector of likelihoods to a summary deviance score (-2 times sub log-lik)
+    # Calculate log-likelihoods of each data point
+    log.likelihoods <- log(likelihoods)
+ 
+    
+    # Calculate the deviance (-2 times sum of log-likelihoods)
+    deviance <- -2 * sum(log.likelihoods)
+
+  }
+
+return(deviance)
+
+}
+```
+
+
+
+## Third Step
+
+We need to maximize the Likelihood (or minimize the -Likelihood) using an optimizer
+
+
+```{r}
+
+# The optim function minimizes a given input
+parameter.fits <- optim(par = c(0, 0, 10), fn = lm.loss, hessian = T)
+
+# Display the estimates
+parameter.fits$par
+
+
+# Caculate the Confidence Intervals (like a t-stat)
+hessian       <- parameter.fits$hessian
+hessian.inv   <- solve(hessian)
+parameter.se  <- sqrt(diag(hessian.inv))
+CI.matrix     <- as.data.frame(matrix(NA, nrow = 3, ncol = 3))
+
+
+# Format the 
+CI.matrix[1,] <- parameter.fits$par
+CI.matrix[2,] <- parameter.fits$par - 1.96 * parameter.se
+CI.matrix[3,] <- parameter.fits$par + 1.96 * parameter.se
+names(CI.matrix) <- c("a", "b", "sigma")
+rownames(CI.matrix) <- c("ML", "95% Lower bound", "95% Upper bound")
+
+# Display CI Matrix
+CI.matrix
+
+```
+
+
+
+
+## Alternative: Use an R package
+
+Simply call an R package!
+
+```{r}
+
+# Need to set-up data in one dataframe
+data.model <- data.frame("y" = data.y, "x" = data.x)
+
+
+# Run the Regression (includes an INTERCEPT)
+lm.model <- lm(y ~ x, data = data.model)
+
+# Display Results
+summary(lm.model)
+
+
+```

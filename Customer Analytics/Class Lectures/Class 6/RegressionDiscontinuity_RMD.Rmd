@@ -1,0 +1,112 @@
+---
+title: "Regression Discontinuity"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## First Steps 
+
+NOTE: Your data needs to be in the folder where your code is located!
+
+The first Chunk of Code will always do 3 Things for us
+
+1) Clear ALL Variables (to make sure nothing is "left over") and clear the screen. 
+2) Read in the data we want to use. In our case the file is called "Data_RD_R.csv"
+3) Explore the data (what variables are in it and what are some basic statistics for these variables)
+
+```{r}
+
+# Clear All Variables & Clear Screen
+rm(list=ls())
+cat("\014")
+
+# Read in the Data
+data.RD = read.csv("Data_RD_R.csv")
+
+# Explore the data
+str(data.RD)
+summary(data.RD)
+
+```
+
+
+## Effect of Reward
+
+Step 1: Base Model - Linear Regression
+
+```{r}
+
+# Run basic regression.
+# We pretrend there that the assignment of the reward (free room) IS RANDOM
+# Recall that the reward is offered if play is above $500
+# So we pretend that this is a true experiment (which it is not)
+lm.model <- lm(y_revenue ~ x_target, data= data.RD)
+summary(lm.model)
+
+```
+
+
+Step 2: Better Model, Regression Discontinuity
+
+```{r}
+
+#install.packages("rdd")
+library(rdd)
+
+# Caculate Bandwidth for Sample of "Apples to Apples" Comparison
+# Cutpoint is value at which reward (or more general, treatment) is given in our example ($500)
+# Key idea is that people just below and just above the cutoff of $500 are the most similar
+# So in effect, we are trying to build an experiment in the data (also called quasi-experiment)
+bw = IKbandwidth(data.RD$x_reward, data.RD$y_revenue, cutpoint = 500, kernel = "triangular")
+
+# Select only Data within the bandwidth
+# Loop over all data and only select data within bandwidth of cutpoint. In this example the intervall is 500-24 to 500+24
+nobs = dim(data.RD)[1]
+data.RD.bw = setNames(data.frame(matrix(ncol = 3, nrow = nobs)), c("y_revenue","x_reward","x_target"))
+
+ct=1
+for (i in 1:nobs) {
+  if (data.RD$x_reward[i]<500-bw | data.RD$x_reward[i]>500+bw) {}
+  else {
+    data.RD.bw$y_revenue[ct] = data.RD$y_revenue[i]
+    data.RD.bw$x_reward[ct]  = data.RD$x_reward[i]
+    data.RD.bw$x_target[ct]  = data.RD$x_target[i]
+    ct = ct+1
+  }
+}            
+
+# RD Model on only 
+# Note model automatically deleted all data that is zero. As we are building the matrix above it has ct observations and nobs-ct data fields that are all zero
+lm.rd.model <- lm(y_revenue ~ x_target, data= data.RD.bw)
+summary(lm.rd.model)
+
+```
+
+
+Step 3: Compare Insights
+
+```{r}
+
+# Profit Implications, recall cost of room is $200
+ROI.reg = (lm.model$coefficients[2]-200)/200*100
+ROI.rd  = (lm.rd.model$coefficients[2]-200)/200*100
+
+# Difference in Insights
+fit <- matrix(c(lm.model$coefficients,ROI.reg,lm.rd.model$coefficients,ROI.rd),ncol=2,nrow=3)
+colnames(fit) <- c("Regression","Regression Discontinuity")
+rownames(fit) <- c("Intercept","Effect of Reward","ROI (%)")
+
+# install.packages("formattable")
+library(formattable)
+formattable(fit)
+
+```
+
+
+

@@ -1,0 +1,108 @@
+---
+title: "Tree"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## First Steps 
+
+NOTE: Your data needs to be in the folder where your code is located!
+
+The first Chunk of Code will always do 3 Things for us
+
+1) Clear ALL Variables (to make sure nothing is "left over") and clear the      screen. 
+2) Read in the data we want to use. In our case the file is called              "Data_Churn_R.csv"
+3) Explore the data (what variables are in it and what are some basic           statistics for these variables)
+
+```{r}
+
+# Clear All Variables & Clear Screen
+rm(list=ls())
+cat("\014")
+
+# Read in the Data
+data.churn = read.csv("Data_Churn_R.csv")
+
+# Explore the data
+str(data.churn)
+summary(data.churn)
+```
+
+
+## Install rpart Package and "open" it (call the library)
+Type "?rpart" for more information on the rpart library
+
+```{r}
+
+#install.packages('gbm')
+library(gbm)
+```
+
+
+## Training and Test Data 
+
+1) Need to Create Training Data (i.e., Estimation Data) and Test Data (i.e., Holdout Data). The data has 2,000 observations. use the first 1,000 for training
+
+```{r}
+
+data.train <- data.churn[1:1000,]
+data.test  <- data.churn[1001:2000,]
+```
+
+## Classification GBM
+
+Step 1: Estimate the Gradient Boosting Machine 
+
+```{r}
+# Another Type of VS with ML - Stochastic Gradient Boosting Machine
+# Often also called MART - Multiple Additive Regression Trees
+# This is one of the most used ML models as very flexible
+
+# TRAINING
+gbm.model <- gbm(y~., distribution = "bernoulli",data = data.train,n.trees =  15000,cv.folds = 5,interaction.depth = 5)
+
+# Best Tree
+#best.iterOOB <- gbm.perf(gbm.model, method = "OOB")
+#print(best.iterOOB)
+
+# Check performance using 5-fold cross-validation (needs cv.folds bigger 1)
+best.iterCV <- gbm.perf(gbm.model, method = "cv")
+print(best.iterCV)
+
+
+```
+
+Step 2: Predict Churn behavior with Gradient Boosting Machine
+
+```{r}
+
+#gbm.predictions.OOB.prop <- predict(gbm.model, data.test, n.trees = best.iterOOB, type = "response")
+
+gbm.predictions.CV.prop <-predict(gbm.model, data.test, n.trees = best.iterCV, type = "response")
+
+# Predicted Class (Churn vs. non-churn)
+#gbm.prediction.OOB.class <- round(gbm.predictions.OOB.prop)
+gbm.prediction.CV.class  <- round(gbm.predictions.CV.prop)
+
+```
+
+Step 3: Create Confusion Matrix allowing to judge the quality of the predictions
+
+```{r}
+# You should have already installed the package "gmodels" in our Intro_R code
+library(gmodels)
+#CrossTable(gbm.prediction.OOB.class,data.test[,1],prop.r=FALSE, prop.c=FALSE,prop.t=FALSE,
+           prop.chisq=FALSE,dnn = c("Predict", "Actual"))
+
+CrossTable(gbm.prediction.CV.class,data.test[,1],prop.r=FALSE, prop.c=FALSE,prop.t=FALSE,
+           prop.chisq=FALSE,dnn = c("Predict", "Actual"))
+```
+
+
+
+

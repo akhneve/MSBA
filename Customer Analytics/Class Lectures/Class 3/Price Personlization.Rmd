@@ -1,0 +1,151 @@
+---
+title: "Price Personaliztion"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Overview
+
+Example how to find a optimized price for a dataset with 200 households (HH) with multiple observations per HH. Note that not all HH have the same number of observations (i.e., purchases). We model sales as a fucntion of price, demographics and the interaction between price and demographics. 
+
+
+
+## First Step
+
+Load Data on Purchases (data_price_personalization) and HH (data_ID). We also will run a basic regression in this part. Lastly, we will test whether a covariate (e.g., price) is significant or not and will create a vector of ONLY signifcant effects (beta.sig)
+
+
+```{r}
+
+# Clear All Variables & Clear the Screen
+rm(list=ls())
+cat("\014")
+
+# Read in the Data
+data.sales = read.csv("data_price_personalization.csv")
+data.ID    = read.csv("data_ID.csv")
+
+# Get number of Covariates in data (ncov) and the number of HH (nhh). 
+# dim gets the dimensions of the array. [1] picks 1st, [2] second dimension
+ncov = dim(data.sales)[2]-1  # Need to subtract one as y (here, sales) also in data. 
+nhh  = dim(data.ID)[1]
+  
+# Explore the data
+# data.sales contains sales, prices, demographics (in buckets, gender(0/1), age (1-7), income(1-8), location(1-3)) as well as the interaction
+# effects
+# data.ID contains the number of housholds (200) and a count for the number of times the hh are observed in the data
+str(data.sales)
+summary(data.sales)
+str(data.ID)
+summary(data.ID)
+
+# Estimate Response Parameters
+# Note: The data includes an intercept (called intercept). In order for the lm package not to add a second
+# intercept adding "0+" takes care of the model not adding an intercept by itself
+# "." means ALL variables from the dataset are added
+lm.model <- lm(sales ~ 0 + ., data = data.sales)
+summary(lm.model)
+
+# Useful quantities
+beta   = lm.model$coefficients
+t_stat = coef(summary(lm.model))[, 3] 
+
+# Check for statistical signifcance
+# Make new estimate vector beta.sig that contains ONLY signifcant (abs(t_stat)>1.96)
+# Loop over the estimated parameters (there are ncov of them)
+beta.sig = beta;
+
+for (i in 1:ncov) {
+  # Test whether t-stat is significant
+  # If not, set beta.sig = 0 for the covariate in question
+  if (abs(t_stat[i])<1.96) {
+      beta.sig[i] = 0;
+  }
+
+}
+
+```
+
+
+
+## Second Step
+
+Define the function to be optimized. In our case it will be the profit for an individual HH as we will be trying to find the best price to show to this HH. The function will be optimized in the thrid step for each HH (i.e., looping over all HH)
+
+
+```{r}
+
+# Define Define the Target Function to be optimized
+# This function will need a parameter to be used to optimized, in our case we have only one, price
+# It also needs some data, in our case the purchase data of the HH
+fn.target <- function(par,x_aux) {
+  
+  price_test <- par[1]  # Price to be optimized
+  
+  # Cacluate the profit for the price
+  # We need to set up the data so we can see whether we would have made more profits at this price
+  x_aux[,2]  = price_test;
+  x_aux[,7]  = x_aux[,3]*price_test
+  x_aux[,8]  = x_aux[,4]*price_test
+  x_aux[,9]  = x_aux[,5]*price_test
+  x_aux[,10] = x_aux[,6]*price_test
+
+  # Cost for mailing
+  cost = t(.5*x_aux[,6])
+    
+  # Optimizers typically minimize problems. So maximizing profit is the same as minimizing negative profit
+  # As we are using data frames (and not numercial matrices) We need to do the matrix*vector a bit different
+  profit_aux = rowSums(as.data.frame(t(t(x_aux) * beta.sig)))-cost
+  profit     = -sum(profit_aux)
+
+  # metric to be given back by the function
+  return(profit)
+
+}
+
+```
+
+
+
+## Third Step
+
+In this step we create the loop that goes over HH (i.e., one HH at a time) to find the best price. In this part we will be calling the Target function we created in Step 2
+
+
+```{r}
+
+# Create a Dataframe for save the results in (200 HH and one optimal price each)
+opt.price = setNames(data.frame(matrix(ncol = 1, nrow = nhh)), c("HH Price"))
+
+# Loop over all (200) housholds
+# Need variables to help me pick the correct records per HH
+# Recall this is not a 3 dim array, so we need to figure out which records go with which HH
+# Note we know how many purchases the HHs have, in the second column of data.ID.
+bg=0
+en=0
+for (i in 1:nhh) {
+    # Get the HHs records
+    bg = en+1;
+    en = en+data.ID[i,2];
+    
+    # Prepare basic data need for Target function
+    # We need the intercept, price and demographics to keep data in correct format
+    # Everything else we need to update, happens in the Target function in rows 92-96
+    x_aux = data.sales[bg:en,2:7];
+  
+    # The optimize Target function (minimizes given an input)
+    # Need to give intervall of allowed values. Here it is that price>5 and price<7
+    par.opt <- optimize(f = fn.target, interval = c(5,7), x_aux,tol = .Machine$double.eps^0.5)
+
+    # Save the optimal price for each HH
+    opt.price[i,1] <- par.opt$minimum
+
+}
+
+```
+

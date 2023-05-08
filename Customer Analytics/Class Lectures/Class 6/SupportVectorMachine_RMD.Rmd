@@ -1,0 +1,100 @@
+---
+title: "Support Vector Machine (SVM)"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## First Steps 
+
+NOTE: Your data needs to be in the folder where your code is located!
+
+The first Chunk of Code will always do 3 Things for us
+
+1) Clear ALL Variables (to make sure nothing is "left over") and clear the      screen. 
+2) Read in the data we want to use. In our case the file is called              "Data_Churn_R.csv"
+3) Explore the data (what variables are in it and what are some basic           statistics for these variables)
+
+```{r}
+
+# Clear All Variables & Clear Screen
+rm(list=ls())
+cat("\014")
+
+# Read in the Data
+data.churn = read.csv("Data_Churn_R.csv")
+
+# Explore the data
+str(data.churn)
+summary(data.churn)
+```
+
+## Training and Test Data 
+
+1) Need to Create Training Data (i.e., Estimation Data) and Test Data (i.e., Holdout Data). The data has 2,000 observations. use the first 1,000 for training
+
+```{r}
+
+data.train <- data.churn[1:1000,]
+data.test  <- data.churn[1001:2000,]
+```
+
+## Binary Choice Model (Logit)
+
+Step 1: Estimate the SVM model 
+
+```{r}
+# Many implemantions exists in R. I am using one from the library e1071
+#install.packages("e1071")
+library(e1071)
+
+# SVM Models need a kernel. The kernel tell the models how to segment the feature space. The kernels for the package are: linear, polynomial, radial and sigmoid.
+
+svm.model.linear = svm(y ~ ., data = data.train, type = "one-classification",kernel = "linear")
+svm.model.polynomial = svm(y ~ ., data = data.train, type = "one-classification",kernel = "polynomial")
+svm.model.radial = svm(y ~ ., data = data.train, type = "one-classification",kernel = "radial")
+svm.model.sigmoid = svm(y ~ ., data = data.train, type = "one-classification",kernel = "sigmoid")
+
+summary(svm.model.linear)
+
+```
+
+Step 2: Predict Churn behavior with the Binary Choice Model
+
+```{r}
+# Predicted Probabilities
+svm.linear.prediction.props <- predict(svm.model.linear,type = "response",data= data.test)
+svm.polynomial.prediction.props <- predict(svm.model.polynomial,type = "response",data= data.test)
+svm.radial.prediction.props <- predict(svm.model.radial,type = "response",data= data.test)
+svm.sigmoid.prediction.props <- predict(svm.model.sigmoid,type = "response",data= data.test)
+
+# Predicted Class (Churn vs. non-churn)
+svm.linear.prediction.class <- round(svm.linear.prediction.props)
+svm.polynomial.prediction.class <- round(svm.polynomial.prediction.props)
+svm.radial.prediction.class <- round(svm.radial.prediction.props)
+svm.sigmoid.prediction.class <- round(svm.sigmoid.prediction.props)
+
+```
+
+Step 3: Create Confusion Matrix allowing to judge the quality of the predictions
+
+```{r}
+# You should have already installed the package "gmodels" in our Intro_R code
+library(gmodels)
+CrossTable(svm.linear.prediction.class,data.test[,1],prop.r=FALSE, prop.c=FALSE,prop.t=FALSE,
+           prop.chisq=FALSE,dnn = c("Predict", "Actual"))
+CrossTable(svm.polynomial.prediction.class, data.test[,1],prop.r=FALSE, prop.c=FALSE,prop.t=FALSE,
+           prop.chisq=FALSE,dnn = c("Predict", "Actual"))
+CrossTable(svm.radial.prediction.class, data.test[,1],prop.r=FALSE, prop.c=FALSE,prop.t=FALSE,
+           prop.chisq=FALSE,dnn = c("Predict", "Actual"))
+CrossTable(svm.sigmoid.prediction.class, data.test[,1],prop.r=FALSE, prop.c=FALSE,prop.t=FALSE,
+           prop.chisq=FALSE,dnn = c("Predict", "Actual"))
+```
+
+
+
+

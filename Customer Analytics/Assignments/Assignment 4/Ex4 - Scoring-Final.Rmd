@@ -1,0 +1,172 @@
+---
+title: "Ex4"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+
+## First Steps 
+
+```{r}
+
+# Clear All Variables & Clear Screen
+rm(list=ls())
+cat("\014")
+
+# Read in the Training Data
+data.training = read.csv("Data_Estimation_R-1.csv")
+
+# Explore the data
+str(data.training)
+summary(data.training)
+
+```
+
+
+
+## BINARY LOGIT MODEL 
+
+We will run our model on the TRAINING Data (i.e, using the FIRST 200 IDs)
+
+```{r}
+
+# Run the Binary Logit Model (includes an INTERCEPT)
+glm.model <- glm(y ~ gender + hl1 + hl2 + hl3 + hl5 + hl6, family=binomial(link='logit'), data=data.training)
+
+# Display Results
+summary(glm.model)
+
+```
+## SCORING the TESTING Data 
+
+Use the TESTING data (i.e., IDs 201-500 which are NOT used for estimation) to predict the buy/no buy decision for each of the 300 IDs in the TESTING sample
+
+
+```{r}
+
+# Read in the Training Data
+data.testing = read.csv("Data_Holdout_R-1.csv")
+
+# Explore the data
+str(data.testing)
+summary(data.testing)
+
+```
+
+```{r}
+# Predicting Join/No Join for the 300 TESTING IDs based on the Model Estimates
+prediction.testing <- data.frame(id = data.testing$id, BinaryLogitProbability = predict(glm.model, data.testing, type = c("response")), BinaryLogitPredict = round(predict(glm.model, data.testing, type = c("response")), digits = 0))
+
+# Add Real Response
+prediction.testing$y = data.testing$y
+
+# Add Lift to the Forecast. Lift is the predicted response rate divided by the average response rate of the Training sample
+prediction.testing$lift = prediction.testing$BinaryLogitProbability/mean(data.training$y)
+
+prediction.testing
+```
+
+## SORTING AND CREATING GRAPHS
+
+```{r}
+# Sort the holdout-list in decreasing order of lift
+
+prediction.testing[order(prediction.testing$lift, decreasing = TRUE),]  
+
+```
+```{r}
+# Creating a chart for Marginal Response Rate vs. Number of Prospects Targeted
+# First we sort by response (best to worst)
+prediction.testing.ResponseSort <- prediction.testing[order(-prediction.testing$BinaryLogitProbability),]
+
+# Add a column to count the number of prospects
+prediction.testing.ResponseSort$NumberProspects <- c(1:300)
+prediction.testing.ResponseSort
+
+# Now we can make a plot of the response rate by number of prospects targeted
+plot(prediction.testing.ResponseSort$BinaryLogitProbability, main="Marginal Response Rate vs. Number of Prospects Targeted ",
+   xlab="#Prospects", ylab="Marginal Response Rate")
+```
+
+```{r}
+
+#Costs
+
+#Calculating the cumulative average response rate
+cum_avg_response_rate <- c()
+
+for(i in c(1:nrow(prediction.testing.ResponseSort)))
+{
+  cum_avg_response_rate[i] <- mean(prediction.testing.ResponseSort$BinaryLogitProbability[seq(i,1,-1)])
+}
+
+avg_CLV <- 30
+sol_cost <- 12
+gain <- cum_avg_response_rate * c(1:300) * avg_CLV - c(1:300) * sol_cost
+
+which.max(gain)
+
+
+#Exporting the target customer ids
+MCR_Target_IDs <-data.frame(prediction.testing.ResponseSort[1:(which.max(gain)),]$id)
+write.csv(MCR_Target_IDs,"MCR_Target_IDs.csv")
+
+```
+
+```{r}
+# Compute the Cumulative Sum (aka running sum) for the Predicted Response Rates in decreasing order. 
+prediction.testing.ResponseSort$CumSum_y_predicted = cumsum(prediction.testing.ResponseSort$BinaryLogitProbability) 
+prediction.testing.ResponseSort
+
+# Plot the curve for Number of Positive Responses vs. Number of Prospects Targeted
+plot(prediction.testing.ResponseSort$CumSum_y_predicted, main="Number of Positive Responses vs. Number of Prospects Targeted",
+   xlab="#Prospects", ylab="Number of Positive Responses")
+```
+
+```{r}
+# Expected Responses vs Real Responses
+# Compute the Cumulative Sum (aka running sum) for the Actual Responses and Predicted Responses in decreasing order of Predicted Response Rate. 
+y_predicted = cumsum(prediction.testing.ResponseSort$BinaryLogitProbability)
+y_real = cumsum(prediction.testing.ResponseSort$y)
+CumulativeSum <- data.frame(y_predicted, y_real)
+
+# Plot the curve for curve for number of Actual Positive Responses vs. Number of Prospects Targeted. Superimpose on this the curve obtained in step 6 above.
+
+plot(CumulativeSum$y_predicted,
+ylim =c(0, 110),
+main="Actual and Expected Responses vs. Number of Prospects Targeted",
+xlab="#Prospects", ylab="Responses",
+type="l",
+col="blue")
+lines(CumulativeSum$y_real, col="green")
+legend("bottomright",
+c("Predicted Responses","Actual Responses"),
+fill=c("blue","green")
+)
+
+```
+```{r}
+
+#Number of max supply
+max_item <- 40 
+
+which.max(CumulativeSum$y_predicted[CumulativeSum$y_predicted <= max_item])
+#Send it to 64 prospects
+
+LSR_Target_IDs <-data.frame(prediction.testing.ResponseSort[1:(which.max(CumulativeSum$y_predicted[CumulativeSum$y_predicted <= 40])),]$id)
+
+write.csv(LSR_Target_IDs,"LSR_Target_IDs.csv")
+
+```
+
+
+```{r}
+# Exporting the Predictions to Excel
+# You can open a csv file in xl
+write.csv(prediction.testing, file = "Prediction_Testing.csv")
+```
+
+

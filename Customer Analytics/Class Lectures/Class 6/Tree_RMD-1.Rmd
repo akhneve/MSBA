@@ -1,0 +1,97 @@
+---
+title: "Tree or CART Model"
+output:
+  word_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## First Steps 
+
+NOTE: Your data needs to be in the folder where your code is located!
+
+The first Chunk of Code will always do 3 Things for us
+
+1) Clear ALL Variables (to make sure nothing is "left over") and clear the      screen. 
+2) Read in the data we want to use. In our case the file is called              "Data_Churn_R.csv"
+3) Explore the data (what variables are in it and what are some basic           statistics for these variables)
+
+```{r}
+
+# Clear All Variables & Clear Screen
+rm(list=ls())
+cat("\014")
+
+# Read in the Data
+data.churn = read.csv("Data_Churn_R.csv")
+
+# Explore the data
+str(data.churn)
+summary(data.churn)
+```
+
+
+## Install rpart Package and "open" it (call the library)
+Type "?rpart" for more information on the rpart library
+
+```{r}
+
+#install.packages('rpart')
+library(rpart)
+```
+
+
+## Training and Test Data 
+
+1) Need to Create Training Data (i.e., Estimation Data) and Test Data (i.e., Holdout Data). The data has 2,000 observations. use the first 1,000 for training
+
+```{r}
+
+data.train <- data.churn[1:1000,]
+data.test  <- data.churn[1001:2000,]
+```
+
+## Classification Tree with rpart
+
+Step 1: Estimate the Tree model (or GROW the tree) 
+
+```{r}
+
+tree.model <- rpart(y ~ ., method="class", data= data.train)
+
+# Display the results 
+printcp(tree.model )
+# Visualize cross-validation results 
+plotcp(tree.model ) 
+# Detailed summary of splits
+summary(tree.model ) 
+# Plot tree 
+plot(tree.model,uniform=TRUE,main="Classification Tree for Churn Data")
+text(tree.model,use.n=TRUE, all=TRUE, cex=.8)
+
+```
+
+Step 2: Predict Churn behavior with the Classification Tree
+
+```{r}
+# Predicted Probabilities
+tree.prediction.probs <- predict(tree.model,data.test,type = c("prob"),data= data.test)
+# Predicted Class (Churn vs. non-churn)
+tree.prediction.class <- predict(tree.model,data.test,type = c("class"),data= data.test)
+```
+
+Step 3: Create Confusion Matrix allowing to judge the quality of the predictions
+
+```{r}
+# You should have already installed the package "gmodels" in our Intro_R code
+library(gmodels)
+CrossTable(tree.prediction.class,data.test[,1],prop.r=FALSE, prop.c=FALSE,prop.t=FALSE,
+           prop.chisq=FALSE,dnn = c("Predict", "Actual"))
+```
+
+
+
+

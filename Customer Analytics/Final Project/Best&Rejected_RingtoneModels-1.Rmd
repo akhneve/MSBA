@@ -1,0 +1,243 @@
+
+```{r}
+# Clear All Variables & Clear the Screen
+rm(list=ls())
+cat("\014")
+
+# Read in the Data
+sea = read.csv("ringtones_Final.csv")
+
+# Explore the data
+str(sea)
+summary(sea)
+
+sea$Competition = as.factor(sea$Competition)
+sea$Volume = as.factor(sea$Volume)
+sea$logPosition=log(sea$Position)
+
+
+
+# Creating Training and Testing Sets
+
+library(caTools)
+set.seed(123)
+split = sample.split(sea$Profitability, SplitRatio = 0.7)
+Train = subset(sea, split==TRUE)
+Test = subset(sea, split==FALSE)
+
+
+
+
+
+```
+
+
+
+
+```{r}
+#CTR main
+
+lm_CTR <- lm(CTR ~ logPosition + Competition + Volume  + Keyword_WordCount + Headline_WordCount  + Headline_Readability + Line.1_Time + Line1_WordCount  + Line2_WordCount  , data=Train)
+summary(lm_CTR)
+
+Predicted_lmctr <- predict(lm_CTR,Test)
+
+SSE = sum((Test$CTR - Predicted_lmctr)^2)
+SST = sum((Test$CTR - mean(Train$CTR))^2)
+
+Test_RSquare_lmctr <- 1 - SSE/SST
+Test_RSquare_lmctr
+
+#CTR Linear Model 1
+
+lm_CTR1 <- lm(CTR ~ logPosition + Competition + Volume  + Keyword_WordCount +Headline_Number +  Headline_WordCount + Headline_Readability + Line.1_Time + Line1_WordCount  + Line2_WordCount  + Line.2_Action + Line_2_Time + KeywordinHeadline + KeywordinBody, data=Train)
+summary(lm_CTR1)
+
+Predicted_lmctr1 <- predict(lm_CTR1,Test)
+
+SSE1 = sum((Test$CTR - Predicted_lmctr1)^2)
+SST1 = sum((Test$CTR - mean(Train$CTR))^2)
+
+Test_RSquare_lmctr1 <- 1 - SSE1/SST1
+Test_RSquare_lmctr1
+
+#CTR Linear Model 2
+
+lm_CTR2 <- lm(CTR ~ logPosition + Competition + Volume  + Keyword_WordCount + KeywordinHeadline + KeywordinBody, data=Train)
+summary(lm_CTR2)
+
+Predicted_lmctr2 <- predict(lm_CTR2,Test)
+
+SSE2 = sum((Test$CTR - Predicted_lmctr2)^2)
+SST2 = sum((Test$CTR - mean(Train$CTR))^2)
+
+Test_RSquare_lmctr2 <- 1 - SSE2/SST2
+Test_RSquare_lmctr2
+
+
+# Simple Baseline Model for Clicks
+
+nrow(Train)
+sbm_table= table(Train$Clicks_b)
+sbm_table
+
+table(Test$Clicks_b)
+
+Accuracy_sbm=sum(Test$Clicks_b)/nrow(Test)
+Accuracy_sbm
+
+#Clicks Logit Model
+
+glm1 <- glm(Clicks_b ~ logPosition + Competition + Volume + Keyword_ringtone + Keyword_WordCount + Headline_WordCount + Headline_Number + Headline_Readability + Line.1_Time +  Line1_WordCount + Line.2_Action + Line2_WordCount  + KeywordinHeadline + KeywordinBody + Headline_Specific, family=binomial(link='logit'), data=Train)
+
+
+PredictedClicks_b = predict(glm1, type="response", newdata=Test)
+
+
+tbl1 = table(Test$Clicks_b, PredictedClicks_b > 0.5) 
+tbl1
+
+sum(diag(tbl1))/sum(tbl1)
+
+
+#Conversion main
+
+Test_1 <- Test[!is.na(Test$Conversion),]
+
+lm_conv<-lm(Conversion ~  Headline_Number +  KeywordinHeadline, data=Train)
+summary(lm_conv)
+
+Predicted_lm_conv <- predict(lm_conv,Test_1)
+SSE = sum((Test_1$Conversion - Predicted_lm_conv)^2)
+SST = sum((Test_1$Conversion- mean(Train$Conversion,na.rm=T))^2)
+
+Test_RSquare_lm_conv <- 1 - SSE/SST
+Test_RSquare_lm_conv
+
+
+#Conversion Linear Model 1
+
+
+lm_conv1<-lm(Conversion ~  logPosition + Competition + Volume + Headline_Number +  KeywordinHeadline , data=Train)
+summary(lm_conv1)
+
+Predicted_lm_conv1 <- predict(lm_conv1,Test_1)
+SSE1 = sum((Test_1$Conversion - Predicted_lm_conv1)^2)
+SST1 = sum((Test_1$Conversion- mean(Train$Conversion,na.rm=T))^2)
+
+Test_RSquare_lm_conv1 <- 1 - SSE1/SST1
+Test_RSquare_lm_conv1
+
+#Conversion Linear Model 2
+
+
+lm_conv2<-lm(Conversion ~ logPosition + Competition + Volume + Keyword_ringtone + Keyword_WordCount + Headline_WordCount + Headline_Number + Headline_Readability + Line.1_Time +  Line1_WordCount + Line.2_Action + Line2_WordCount  + KeywordinHeadline + KeywordinBody + Headline_Specific , data=Train)
+summary(lm_conv2)
+
+Predicted_lm_conv2 <- predict(lm_conv2,Test_1)
+SSE2 = sum((Test_1$Conversion - Predicted_lm_conv2)^2)
+SST2 = sum((Test_1$Conversion- mean(Train$Conversion,na.rm=T))^2)
+
+Test_RSquare_lm_conv2 <- 1 - SSE2/SST2
+Test_RSquare_lm_conv2
+
+
+#Conversion Logit Model
+
+# Simple Baseline Model for Action count
+
+nrow(Train)
+sbm_table= table(Train$actioncount_b )
+sbm_table
+
+table(Test$actioncount_b )
+
+Accuracy_sbm=1-sum(Test$actioncount_b)/nrow(Test)
+Accuracy_sbm
+
+#Action count Logit Model
+
+glm2 <- glm(actioncount_b  ~ logPosition + Competition + Volume + Keyword_ringtone + Keyword_WordCount + Headline_WordCount + Headline_Number + Headline_Readability + Line.1_Time +  Line1_WordCount + Line.2_Action + Line2_WordCount  + KeywordinHeadline + KeywordinBody + Headline_Specific, family=binomial(link='logit'), data=Train)
+
+
+Predictedactioncount_b  = predict(glm2, type="response", newdata=Test)
+
+
+tbl2 = table(Test$actioncount_b , Predictedactioncount_b  > 0.5) 
+tbl2
+
+Accuracy2=1-(sum(diag(tbl2))/sum(tbl2))
+ Accuracy2
+
+#Profit main 
+
+lm_PH<-lm(Profit ~ logPosition + Competition + Headline_Number, data=Train)
+summary(lm_PH)
+Predicted_lm_PH <- predict(lm_PH,Test)
+
+SSE = sum((Test$Profit - Predicted_lm_PH)^2)
+SST = sum((Test$Profit - mean(Train$Profit))^2)
+
+Test_RSquare_lm_PH <- 1 - SSE/SST
+Test_RSquare_lm_PH
+
+#Profit Linear Model 1 
+
+lm_PH1<-lm(Profit ~ logPosition + Competition + Volume  + Keyword_WordCount +Headline_Number +  Headline_WordCount + Headline_Readability + Line.1_Time + Line1_WordCount  + Line2_WordCount  + Line.2_Action + Line_2_Time + KeywordinHeadline + KeywordinBody, data=Train)
+summary(lm_PH1)
+Predicted_lm_PH1 <- predict(lm_PH1,Test)
+
+SSE1 = sum((Test$Profit - Predicted_lm_PH1)^2)
+SST1 = sum((Test$Profit - mean(Train$Profit))^2)
+
+Test_RSquare_lm_PH1 <- 1 - SSE1/SST1
+Test_RSquare_lm_PH1
+
+
+#Profit Linear Model 2
+
+lm_PH2<-lm(Profit ~logPosition + Competition + Volume + Keyword_ringtone + Keyword_WordCount + Headline_WordCount + Line.1_Time +  Line1_WordCount + Line2_WordCount + KeywordinHeadline + KeywordinBody , data=Train)
+summary(lm_PH2)
+Predicted_lm_PH2 <- predict(lm_PH2,Test)
+
+SSE2 = sum((Test$Profit - Predicted_lm_PH2)^2)
+SST2 = sum((Test$Profit - mean(Train$Profit))^2)
+
+Test_RSquare_lm_PH2 <- 1 - SSE2/SST2
+Test_RSquare_lm_PH2
+
+
+
+#Profit Logit Model
+
+
+# Simple Baseline Model for Profitability
+
+nrow(Train)
+sbm_table= table(Train$Profitability)
+sbm_table
+
+table(Test$Profitability)
+
+Accuracy_sbm=1-sum(Test$Profitability)/nrow(Test)
+Accuracy_sbm
+
+#Profitability Logit Model
+
+glm3 <- glm(Profitability  ~ logPosition + Competition + Volume + Keyword_ringtone + Keyword_WordCount + Headline_WordCount + Headline_Number + Headline_Readability + Line.1_Time +  Line1_WordCount + Line.2_Action + Line2_WordCount  + KeywordinHeadline + KeywordinBody + Headline_Specific, family=binomial(link='logit'), data=Train)
+
+
+PredictedProfitability   = predict(glm3, type="response", newdata=Test)
+
+
+tbl3 = table(Test$Profitability , PredictedProfitability  > 0.5) 
+tbl3
+
+
+Accuracy3= 1-(sum(diag(tbl3))/sum(tbl3))
+
+Accuracy3
+
+
+
+```

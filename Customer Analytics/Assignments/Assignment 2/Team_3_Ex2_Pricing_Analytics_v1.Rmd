@@ -1,0 +1,149 @@
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## LOADING DATA
+```{r}
+
+# Clear All Variables & Clear the Screen
+rm(list=ls())
+cat("\014")
+
+# Read in the Data
+data.app = read.csv("Ex2_Data_R-1.csv", header= TRUE)
+
+# Explore the data
+str(data.app)
+summary(data.app)
+```
+
+## PREPARE DATA
+```{r}
+
+# Create log UNITS
+data.app$logUNITS1 <- log(data.app$UNITS1)
+data.app$logUNITS2 <- log(data.app$UNITS2)
+data.app$logUNITS3 <- log(data.app$UNITS3)
+
+# Create log PRICES
+data.app$logREGPR1 <- log(data.app$REGPR1)
+data.app$logREGPR2  <- log(data.app$REGPR2)
+data.app$logREGPR3  <- log(data.app$REGPR3)
+```
+
+## REGRESSION MODELS
+
+## Linear models - Own effects only
+```{r}
+# App 1
+lm.linear1   <- lm(UNITS1 ~ REGPR1 + FEAT1 + RATING1, data = data.app)
+lm.semi_log1 <- lm(logUNITS1 ~ REGPR1 + FEAT1 + RATING1, data = data.app)
+
+summary(lm.linear1)
+summary(lm.semi_log1)
+```
+```{r}
+# App 2
+lm.linear2   <- lm(UNITS2 ~ REGPR2 + FEAT2 + RATING2, data = data.app)
+lm.semi_log2 <- lm(logUNITS2 ~ REGPR2 + FEAT2 + RATING2, data = data.app)
+
+summary(lm.linear2)
+summary(lm.semi_log2)
+```
+
+```{r}
+# App 3
+lm.linear3   <- lm(UNITS3 ~ REGPR3 + FEAT3 + RATING3, data = data.app)
+lm.semi_log3 <- lm(logUNITS3 ~ REGPR3 + FEAT3 + RATING3, data = data.app)
+
+summary(lm.linear3)
+summary(lm.semi_log3)
+```
+
+## Linear models - Own-effects and competitive-effects
+```{r}
+# App 1
+lm.linear_own_comp1 <- lm(UNITS1 ~ REGPR1 + FEAT1 + RATING1 + REGPR2 + FEAT2 + RATING2 + REGPR3 + FEAT3 + RATING3, data = data.app)
+lm.semi_log_own_comp1 <- lm(logUNITS1 ~ REGPR1 + FEAT1 + RATING1 + REGPR2 + FEAT2 + RATING2 + REGPR3 + FEAT3 + RATING3, data = data.app)
+
+# Display Results
+summary(lm.linear_own_comp1)
+summary(lm.semi_log_own_comp1)
+```
+
+```{r}
+# App 2
+lm.linear_own_comp2 <- lm(UNITS2 ~ REGPR1 + FEAT1 + RATING1 + REGPR2 + FEAT2 + RATING2 + REGPR3 + FEAT3 + RATING3, data = data.app)
+lm.semi_log_own_comp2 <- lm(logUNITS2 ~ REGPR1 + FEAT1 + RATING1 + REGPR2 + FEAT2 + RATING2 + REGPR3 + FEAT3 + RATING3, data = data.app)
+
+# Display Results
+summary(lm.linear_own_comp2)
+summary(lm.semi_log_own_comp2)
+```
+```{r}
+# App 3
+lm.linear_own_comp3 <- lm(UNITS3 ~ REGPR1 + FEAT1 + RATING1 + REGPR2 + FEAT2 + RATING2 + REGPR3 + FEAT3 + RATING3, data = data.app)
+lm.semi_log_own_comp3 <- lm(logUNITS3 ~ REGPR1 + FEAT1 + RATING1 + REGPR2 + FEAT2 + RATING2 + REGPR3 + FEAT3 + RATING3, data = data.app)
+
+# Display Results
+summary(lm.linear_own_comp3)
+summary(lm.semi_log_own_comp3)
+```
+
+## Price elasticity - Clout and vulnerability
+```{r}
+# App 1 - linear model with own effects only
+price.coeff.linear1 = unname(lm.linear1$coefficients[2], force = FALSE)
+elas.price.linear1 = price.coeff.linear1*mean(data.app$REGPR1)/mean(data.app$UNITS1)
+elas.price.linear1
+
+feature.coeff.linear1 = unname(lm.linear1$coefficients[3], force = FALSE)
+elas.feature.linear1 = feature.coeff.linear1/mean(data.app$UNITS1)
+elas.feature.linear1
+```
+
+```{r}
+# App 1 - linear model with own and competitive effects only
+price.coeff.linear1 = unname(lm.linear_own_comp1$coefficients[2], force = FALSE)
+elas.price.linear1 = price.coeff.linear1*mean(data.app$REGPR1)/mean(data.app$UNITS1)
+elas.price.linear1
+```
+```{r}
+# App 2 - linear model with own effects and competitive effects
+price.coeff.linear2.comp = unname(lm.linear_own_comp2$coefficients[2], force = FALSE)
+elas.linear2.price.comp = price.coeff.linear2.comp*mean(data.app$REGPR1)/mean(data.app$UNITS2)
+elas.linear2.price.comp
+
+price.coeff.linear2.own = unname(lm.linear_own_comp2$coefficients[5], force = FALSE)
+elas.linear2.price.own = price.coeff.linear2.own*mean(data.app$REGPR2)/mean(data.app$UNITS2)
+elas.linear2.price.own
+
+feature.coeff.linear2.own = unname(lm.linear_own_comp2$coefficients[6], force = FALSE)
+elas.linear2.feature.own = feature.coeff.linear2.own/mean(data.app$UNITS2)
+elas.linear2.feature.own
+```
+```{r}
+# App 3 - semi-log model with own effects and competitive effects
+price.coeff.semilog3.comp = unname(lm.semi_log_own_comp3$coefficients[2], force = FALSE)
+elas.semilog3.price.comp = price.coeff.semilog3.comp*mean(data.app$REGPR1)
+elas.semilog3.price.comp
+
+price.coeff.semilog3.own = unname(lm.semi_log_own_comp3$coefficients[8], force = FALSE)
+elas.semilog3.price.own = price.coeff.semilog3.own*mean(data.app$REGPR3)
+elas.semilog3.price.own
+
+feature.coeff.semilog3.own = unname(lm.semi_log_own_comp3$coefficients[9], force = FALSE)
+elas.semilog3.feature.own = feature.coeff.semilog3.own
+elas.semilog3.feature.own
+```
+## Calculate market share
+```{r}
+total.market = sum(data.app$REGPR1*data.app$UNITS1) + sum(data.app$REGPR2*data.app$UNITS2) + sum(data.app$REGPR3*data.app$UNITS3)
+market.share1 = sum(data.app$REGPR1*data.app$UNITS1) / total.market
+market.share1
+market.share2 = sum(data.app$REGPR2*data.app$UNITS2) / total.market
+market.share2
+market.share3 = sum(data.app$REGPR3*data.app$UNITS3) / total.market
+market.share3
+```

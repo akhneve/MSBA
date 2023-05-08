@@ -1,0 +1,105 @@
+---
+title: "RFM_RMD"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## First Steps 
+
+NOTE: Your data needs to be in the folder where your code is located!
+
+The first Chunk of Code will always do 3 Things for us
+
+1) Clear ALL Variables (to make sure nothing is "left over") and clear the      screen. 
+2) Read in the data we want to use. In our case the file is called              "Data_BBB RFM_R.csv"
+3) Explore the data (what variables are in it and what are some basic           statistics for these variables)
+
+```{r}
+
+# Clear All Variables & Clear Screen
+rm(list=ls())
+cat("\014")
+
+# Read in the Data
+data.bbb = read.csv("Data_BBB RFM_R.csv")
+
+# Explore the data
+str(data.bbb)
+summary(data.bbb)
+
+```
+
+
+## RFM 
+
+1) Define Data for RFM (Recency is "last", Frequency is "purch" and Monetary is "total")
+
+```{r}
+
+data.rfm <- data.frame(ID = data.bbb$acctnum, Recency = data.bbb$last, Frequency = data.bbb$purch, Monetary = data.bbb$total)
+```
+
+2) Call the Functions used for RFM (the "source" command). Need to have the file called "RFM_Functions.R" in the current directory
+
+```{r}
+
+source("RFM_Functions.R")
+
+RFM.score <-getIndependentScore(data.rfm)
+```
+
+3) Export the Results
+```{r}
+
+# Exporting the Predictions to Excel (as a .csv file)
+write.csv(x = RFM.score, file='RFM_Independent.csv')
+```
+
+4) Analysis (on slide 24), Response Rates by RFM Scores
+   Can also be done in Excel using the file above that was saved
+
+```{r}
+
+# Need to sort RFM.score by Customer ID
+# Note that data.bbb is sorted by ID!
+RFM.score_sorted <- RFM.score[order(RFM.score$ID),] 
+
+
+# Crosstab of Recency Score vs. Buyer (did or did not buy offer)
+library(gmodels)
+#For Recency
+data_crosstab_Recency <- CrossTable(RFM.score_sorted$R_Score, data.bbb$buyer,prop.r=TRUE, prop.c=FALSE, prop.t=FALSE, prop.chisq=FALSE, dnn = c("R", "Response"))
+# For Frequency
+data_crosstab_Frequency <- CrossTable(RFM.score_sorted$F_Score, data.bbb$buyer,prop.r=TRUE, prop.c=FALSE, prop.t=FALSE, prop.chisq=FALSE, dnn = c("F", "Response"))
+# For Monetary
+data_crosstab_Monetary <- CrossTable(RFM.score_sorted$M_Score, data.bbb$buyer,prop.r=TRUE, prop.c=FALSE, prop.t=FALSE, prop.chisq=FALSE, dnn = c("M", "Response"))
+# For Full RFM
+data_crosstab_RFM <- CrossTable(RFM.score_sorted$Total_Score, data.bbb$buyer,prop.r=TRUE, prop.c=FALSE, prop.t=FALSE, prop.chisq=FALSE, dnn = c("RFM", "Response"))
+
+
+# Bar Plot
+# Need to use the % Figures from the rows (...$prop.row) and looking for the 
+# buyers, so you need the second element ([,2])
+barplot(data_crosstab_Recency$prop.row[,2], main="Response rate",xlab="Recency Segments")
+barplot(data_crosstab_Frequency$prop.row[,2], main="Response rate",xlab="Frequency Segments")
+barplot(data_crosstab_Monetary$prop.row[,2], main="Response rate",xlab="Monetary Segments")
+barplot(data_crosstab_RFM$prop.row[,2], main="Response rate",xlab="RFM Segments")
+
+
+# Recreating Lift and Gains Sheet
+# All the data is in a table called "t" in the data_crosstab_RFM dataframe - check str(data_crosstab_RFM)
+# It has rhe names of the RFM cells attached
+# First get the names
+RFM_names = names(data_crosstab_RFM$t[,1])
+# Remove names from data
+non_buyers = unname(data_crosstab_RFM$t[,1], force = FALSE)
+buyers     = unname(data_crosstab_RFM$t[,2], force = FALSE)
+
+data.liftgains <-data.frame(RFM=RFM_names, ncustomers=non_buyers+buyers, nbuyers=buyers)
+
+```
+
+

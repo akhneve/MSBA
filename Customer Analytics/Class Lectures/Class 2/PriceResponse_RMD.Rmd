@@ -1,0 +1,102 @@
+---
+title: "Price Response"
+output:
+  word_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## First Steps 
+
+NOTE: Your data needs to be in the folder where your code is located!
+
+The first Chunk of Code will always do 3 Things for us
+
+1) Clear ALL Variables (to make sure nothing is "left over") and clear the      screen. 
+2) Read in the data we want to use. In our case the file is called              "data.price.csv)"
+3) Explore the data (what variables are in it and what are some basic           statistics for these variables)
+
+```{r}
+
+# Clear All Variables & Clear the Screen
+rm(list=ls())
+cat("\014")
+
+# Read in the Data
+data.price = read.csv("Data_Price_R.csv")
+
+# Explore the data
+str(data.price)
+summary(data.price)
+```
+
+
+## PREPARE DATA
+ 
+In our case we have to create new variables: log(Units) and log(Prices)
+
+```{r}
+
+# Create log UNITS
+data.price$logUNITS1 <- log(data.price$UNITS1)
+data.price$logUNITS2 <- log(data.price$UNITS2)
+data.price$logUNITS3 <- log(data.price$UNITS3)
+data.price$logUNITS4 <- log(data.price$UNITS4)
+
+# Create log PRICES
+data.price$logPRICE1 <- log(data.price$PRICE1)
+data.price$logPRICE2 <- log(data.price$PRICE2)
+data.price$logPRICE3 <- log(data.price$PRICE3)
+data.price$logPRICE4 <- log(data.price$PRICE4)
+```
+
+
+## REGRESSION MODELS
+
+1) Define y (Dependent Variable). For this example, Sales for Brand 1           (UNITS1) is used.
+
+2) Define X (Independent Variables). For this example, OWN Marketing Activity    (PRICE1, FEAT1 and DISP1) is used
+
+3) Run the Models. For example, a linear model where Sales for Brand 1          (UNITS1) are a function of Units1's Price (PRICE1), Feature (FEAT1), and     Display (DISP1)
+
+```{r}
+
+# Run the Regression (includes an INTERCEPT)
+
+# Models from Slide "PRICE REGRESSIONS – EXAMPLE OREO"
+# These are the basic Models that only have the Price of Oreo in them
+lm.linear   <- lm(UNITS1 ~ PRICE1, data = data.price)
+lm.semi_log <- lm(logUNITS1 ~ PRICE1, data = data.price)
+lm.log_log  <- lm(logUNITS1 ~ logPRICE1, data = data.price)
+
+
+# Models from Slide "INCORPORATING PROMOTIONAL RESPONSE", results are on the next slide in the deck
+# these models have next to Oreo's own price also Feature and Display for Oreo
+# Note we cannot run the log-log model as Feature and Display include zeros so we only run two models
+lm.linear_own   <- lm(UNITS1 ~ PRICE1+FEAT1+DISP1, data = data.price)
+lm.semi_log_own <- lm(logUNITS1 ~ PRICE1+FEAT1+DISP1, data = data.price)
+
+# Models from Slide "CROSS-PRICE EFFECTS AND CROSS-PROMOTION EFFECTS", results are on the next slide in the deck
+# these models have next to Oreo's own price also Feature and Display for Oreo as well as ALL competitive marketing activity
+# Note we cannot run the log-log model as Feature and Display include zeros so we only run two models
+# Note that there are no Display and Feature for Brand 3 and no Feature for Brand 4
+lm.linear_own_comp   <- lm(UNITS1 ~ PRICE1+FEAT1+DISP1+PRICE2+FEAT2+DISP2 +PRICE3+PRICE4+FEAT4, data = data.price)
+lm.semi_log_own_comp <- lm(logUNITS1 ~ PRICE1+FEAT1+DISP1+PRICE2+FEAT2 +DISP2+PRICE3+PRICE4+FEAT4, data = data.price)
+
+# Display Results
+summary(lm.linear)
+summary(lm.semi_log)
+summary(lm.linear_own)
+summary(lm.semi_log_own)
+summary(lm.linear_own_comp)
+summary(lm.semi_log_own_comp)
+
+# How caculate a Price Elasticity - example Linear Model
+# Use the command str(lm.linear) to see what's in the data frame lm.linear
+price.coeff.linear = unname(lm.linear$coefficients[2], force = FALSE)
+elas.linear        = price.coeff.linear*mean(data.price$PRICE1)/mean(data.price$UNITS1)
+
+```

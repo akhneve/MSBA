@@ -1,0 +1,83 @@
+---
+title: "AdvertisingResponse_RMD"
+output: word_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## First Steps 
+
+NOTE: Your data needs to be in the folder where your code is located!
+
+The first Chunk of Code will always do 3 Things for us
+
+1) Clear ALL Variables (to make sure nothing is "left over") and clear the      screen. 
+2) Read in the data we want to use. In our case the file is called              "Data_Advertising_R.csv)"
+3) Explore the data (what variables are in it and what are some basic           statistics for these variables)
+
+```{r}
+
+# Clear All Variables & Clear the Screen
+rm(list=ls())
+cat("\014")
+
+# Read in the Data
+data.adv = read.csv("Data_Advertising_R.csv")
+
+# Explore the data
+str(data.adv)
+summary(data.adv)
+```
+
+
+## PREPARE DATA
+ 
+In our case we have to create new variables: log(Advertising), Advertising^2, and Lag(Sales)
+
+```{r}
+
+# Create log Advertising
+data.adv$logAdvertising <- log(data.adv$Advertising)
+
+# Create Advertising^2
+data.adv$Advertising2 <- (data.adv$Advertising)^2
+
+# Create LAG Sales
+data.adv$lagSales <- c(NA, head(data.adv$Sales, -1))
+
+# Display the data
+summary(data.adv)
+```
+
+
+## REGRESSION MODELS
+
+1) Define y (Dependent Variable). For this example, Sales is used.
+
+2) Define X (Independent Variables). For this example, Advertising and Lagged    Sales (i.e., a model with carry-over) are used
+
+3) Run the Models. For example, a linear model where Sales (Sales) are a        function of Advertising (Advertising) and lagged Sales (lagSales)
+
+```{r}
+
+# Run the Regression (includes an INTERCEPT) - The Models Numbers are the ones from the deck
+lm.model1 <- lm(Sales ~ Advertising, data = data.adv)
+lm.model2 <- lm(Sales ~ logAdvertising, data = data.adv)
+lm.model3 <- lm(Sales ~ Advertising + Advertising2, data = data.adv)
+
+lm.model4 <- lm(Sales ~ Advertising + lagSales, data = data.adv)
+lm.model5 <- lm(Sales ~ logAdvertising + lagSales, data = data.adv)
+lm.model6 <- lm(Sales ~ Advertising + Advertising2 + lagSsales, data = data.adv)
+
+# Display Results
+summary(lm.model1)
+summary(lm.model2)
+summary(lm.model3)
+summary(lm.model4)
+summary(lm.model5)
+summary(lm.model6)
+```
+```
+
