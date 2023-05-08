@@ -1,0 +1,182 @@
+---
+title: "Assignment 2"
+author: "Team 7 - Aakash and Noufris"
+date: "2023-04-23"
+output:
+  pdf_document: default
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Clean the environment and import essentials
+```{r}
+rm(list = ls())
+cat('\014')
+
+library(psych)
+library(corrplot)
+
+```
+
+Here,
+
+$$ log(Q_1) = A_1 - 2.5 \cdot log(P_1) + 1.5 \cdot log(P_2) + 1.2 \cdot log(P_3)  $$
+
+$$ log(Q_2) = A_2 + 0.7 \cdot log(P_1) - 1.5 \cdot log(P_2) + 0.5 \cdot log(P_3)  $$
+
+$$ log(Q_3) = A_3 + 0.7 \cdot log(P_1) + 0.4 \cdot log(P_2) - 1.2 \cdot log(P_3)  $$
+
+$$ \beta_{11} = -2.5, \beta_{12} = 1.5,  \beta_{13} = 1.2 $$
+$$ \beta_{21} = 0.7, \beta_{22} = -1.5,  \beta_{23} = 0.5 $$
+$$ \beta_{31} = 0.7, \beta_{32} = 0.4,  \beta_{33} = -1.2 $$
+
+$$ P_1 = 2, P_2 = 1.75, P_3 = 1.5 $$
+
+$$ C_1 = 0.5, C_2 = 0.75, C_3 = 0.9 $$
+
+$$ r = 0.1 $$
+
+### Question 1
+
+The own price elasticites of the product 1, 2 and 3 are -2.5, -1.5 and -1.2 respectively.
+
+### Question 2
+
+The price elasticity matrix is as follows:
+
+$$ \begin{bmatrix}
+-2.5 & 1.5 & 1.2\\
+0.7 & -1.5 & 0.5\\
+0.7 & 0.4 & -1.2\\
+\end{bmatrix}$$
+
+### Question 3
+
+$$ \frac{Q_{i1}}{Q_{i0}} = (1 + \gamma_1)^{\beta_{i1}} *  (1 + \gamma_2)^{\beta_{i2}} * (1 + \gamma_3)^{\beta_{i3}} $$
+
+Here,
+
+$$ \gamma_1 = 0.05, \gamma_2 = 0, \gamma_3 = -0.15 $$
+$$ \frac{Q_{11}}{Q_{10}} = (1 + 0.05)^{-2.5} *  (1 + 0)^{1.5} * (1 - 0.15)^{1.2} = (1.05)^{-2.5} *  (1)^{1.5} * (0.85)^{1.2} = 0.728 $$
+
+$$ \frac{Q_{21}}{Q_{20}} = (1 + 0.05)^{0.7} *  (1 + 0)^{-1.5} * (1 - 0.15)^{0.5} = (1.05)^{0.7} *  (1)^{-1.5} * (0.85)^{0.5} = 0.954 $$
+
+$$ \frac{Q_{31}}{Q_{30}} = (1 + 0.05)^{0.7} *  (1 + 0)^{0.4} * (1 - 0.15)^{-1.2} = (1.05)^{0.7} *  (1)^{0.4} * (0.85)^{-1.2} = 1.257 $$
+We observe that two ratios are less than 1 (demand after is less than demand before) and one ratio is greater than 1 (demand after is greater than demand before).
+For product 1, the ratio is 0.728. Product 1 sees a decrease in demand of 27.2%.
+For product 2, the ratio is 0.954. Product 2 sees a decrease in demand of 4.6%.
+For product 3, the ratio is 1.257. Product 3 sees an increase in demand of 25.7%.
+
+The above outcome can be explained as follows:
+1. Product 1 sees a decrease in demand because it has the highest elasticity (-2.5) among the products, making it more susceptible to price changes. Therefore, its price increase affects negatively its demand. 
+2. Product 2 sees a decrease in demand because there is an effect of the price of product 3 on the sales of product 2 (price of product 3 decreases affecting negatively the sales of product 2).
+3. Product 3 sees an increase in demand because it decreases its price, product 2 has zero change in its price and product 1 price increase affects positively product 3 sales.
+
+```{r}
+# Create a function to calculate above ratios given the price changes, own and cross elasticities
+demand_change <- function(price_change_1, price_change_2, price_change_3, 
+                          elasticity_1, elasticity_2, elasticity_3,
+                          cross_elasticity_1_2, cross_elasticity_1_3,
+                          cross_elasticity_2_1, cross_elasticity_2_3,
+                          cross_elasticity_3_1, cross_elasticity_3_2) {
+   
+   # Ratio for product 1
+   ratio_1 = ((1+price_change_1)^elasticity_1)*((1+price_change_2)^cross_elasticity_1_2)*
+     ((1+price_change_3)^cross_elasticity_1_3)
+   
+   # Ratio for product 2
+   ratio_2 = ((1+price_change_1)^cross_elasticity_2_1)*((1+price_change_2)^elasticity_2)*
+     ((1+price_change_3)^cross_elasticity_2_3)
+   
+   # Ratio for product 3
+   ratio_3 = ((1+price_change_1)^cross_elasticity_3_1)*((1+price_change_2)^cross_elasticity_3_2)*
+     ((1+price_change_3)^elasticity_3)
+   
+   # Return results as a list
+   return(list(ratio_1 = ratio_1, ratio_2 = ratio_2, ratio_3 = ratio_3))
+}
+```
+
+```{r}
+quantitychange = demand_change(0.05, 0, -0.15, -2.5,-1.5, -1.2, 1.5, 1.2, 0.7, 0.5, 0.7, 0.4)
+quantitychange
+```
+### Question 4
+
+$$ \frac{\pi_{i1}}{\pi_{i0}} = \frac{Q_{i1}*(P_{i1}*(1-{r_i})-C_{i1})}{Q_{i0}*(P_{i0}*(1-{r_i})-C_{i0})} $$
+Profit ratio for Product 1
+
+$$ \frac{\pi_{11}}{\pi_{10}} = \frac{Q_{11}*(P_{11}*(1-r)-C_1)}{Q_{10}*(P_{10}*(1-r)-C_1)} =  \frac{\alpha*Q_{10}*(P_{10}*(1+\gamma_1)*(1-r)-C_1)}{Q_{10}*(P_{10}*(1-r)-C_1)} = \alpha*\frac{(P_{10}*(1+\gamma_1)*(1-r)-C_{1})}{(P_{10}*(1-r)-C_{1})} = $$
+$$ = 0.728*\frac{(2*(1+0.05)*(1-0.10)-0.5)}{2*(1-0.10)-0.5)} = 0.728*\frac{1.39}{1.3} = 0.778 $$
+Profit ratio for Product 2
+
+$$ \frac{\pi_{21}}{\pi_{20}} = \frac{Q_{21}*(P_{21}*(1-r)-C_2)}{Q_{20}*(P_{20}*(1-r)-C_2)} =  \frac{\alpha*Q_{20}*(P_{20}*(1+\gamma_2)*(1-r)-C_2)}{Q_{20}*(P_{20}*(1-r)-C_2)} = \alpha*\frac{(P_{20}*(1+\gamma_2)*(1-r)-C_{2})}{(P_{20}*(1-r)-C_{2})} = $$
+$$ = 0.954*\frac{(1.75*(1+0)*(1-0.10)-0.75)}{1.75*(1-0.10)-0.75)} = 0.954*\frac{0.825}{0.825} = 0.954 $$
+Profit ratio for Product 3
+
+$$ \frac{\pi_{31}}{\pi_{30}} = \frac{Q_{31}*(P_{31}*(1-r)-C_3)}{Q_{30}*(P_{30}*(1-r)-C_3)} =  \frac{\alpha*Q_{30}*(P_{30}*(1+\gamma_3)*(1-r)-C_3)}{Q_{30}*(P_{30}*(1-r)-C_3)} = \alpha*\frac{(P_{30}*(1+\gamma_3)*(1-r)-C_{3})}{(P_{30}*(1-r)-C_{3})} = $$
+$$ = 1.257*\frac{(1.5*(1-0.15)*(1-0.10)-0.9)}{1.5*(1-0.10)-0.9)} = 1.257*\frac{0.247}{0.45} = 0.689 $$
+We observe that profits after the price adjustments are less than the profits before the price adjustments for all products. More specifically:
+Product 1: Profits_after/Profits_before = 0.778
+Product 2: Profits_after/Profits_before = 0.954
+Product 3: Profits_after/Profits_before = 0.689
+
+For product 1, the profit decreases due to the high elasticity of the product that drives the demand downwards after the price increase.
+For product 2, the profit decreases slightly by 5% due to the non-change to its price and the decrease in price of product 3.
+For product 3, the profit decreases significantly due to its price decrease and its relatively higher marginal cost. Based on that, the price cut is not justified.
+
+```{r}
+# Create a function to calculate profit ratios given the price changes, the demand ratios, the prices of the products, the retail margin, and the marginal costs
+
+profit_change <- function(price_change_1, price_change_2, price_change_3, price_1, price_2, price_3,
+                          retail_margin, cost_1, cost_2, cost_3) {
+   
+   # Ratio for product 1
+   profit_ratio_1 = (quantitychange$ratio_1*(price_1*(1+price_change_1)*(1-retail_margin)-cost_1))/
+     (price_1*(1-retail_margin)-cost_1)
+   
+   # Ratio for product 2
+   profit_ratio_2 = (quantitychange$ratio_2*(price_2*(1+price_change_2)*(1-retail_margin)-cost_2))/
+     (price_2*(1-retail_margin)-cost_2)
+   
+   # Ratio for product 3
+   profit_ratio_3 = (quantitychange$ratio_3*(price_3*(1+price_change_3)*(1-retail_margin)-cost_3))/
+     (price_3*(1-retail_margin)-cost_3)
+   
+   # Return results as a list
+   return(list(profit_ratio_1 = profit_ratio_1, profit_ratio_2 = profit_ratio_2, 
+               profit_ratio_3 = profit_ratio_3))
+}
+```
+
+```{r}
+profitchange = profit_change(0.05, 0, -0.15, 2, 1.75, 1.5, 0.1, 0.5, 0.75, 0.9)
+profitchange
+```
+### Question 5
+
+The highest marginal cost at which the price cut is justified for product 3 should satisfy the following:
+
+$$ \pi_1 > \pi_0 => \frac{Q_1}{Q_0} > \frac{\frac{P_0-C}{P_0}}{\frac{(1+\gamma)P_0-C}{P_0}} $$
+
+```{r}
+price_3 = 1.5
+price_change_1 = 0.05
+price_change_2 = 0
+price_change_3 = -0.15
+cost_3 = 0.4
+elasticity_3 = -1.2
+cross_elasticity_3_1 = 0.7
+cross_elasticity_3_2 = 0.4
+
+gross_margin = (price_3-cost_3)/price_3
+B = gross_margin/(gross_margin+price_change_3)
+A = ((1+price_change_1)^cross_elasticity_3_1)*((1+price_change_2)^cross_elasticity_3_2)*
+     ((1+price_change_3)^elasticity_3)
+A>B
+```
+
+The highest marginal cost at which the price cut is justified for product 3 is 0.4.

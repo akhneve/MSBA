@@ -1,0 +1,157 @@
+---
+title: 'Assignment 1'
+author: "Team 7 - Aakash and Noufris"
+date: "April 2023"
+output: word_document
+urlcolor: blue
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Clean the environment and import essentials
+```{r}
+rm(list = ls())
+cat('\014')
+
+library(psych)
+library(corrplot)
+
+```
+
+
+### Question 1
+Import, scale, and summarize the data in R
+
+```{r}
+df_survey = read.csv("assg1.csv")
+describe(df_survey)
+
+df_survey.sc <- df_survey
+df_survey.sc[, 2:6] <- scale(df_survey.sc[,2:6])
+describe(df_survey.sc)
+```
+
+The survey responses were scaled (normalized) with mean 0 and std 1.
+
+### Question 2
+Present the matrix of correlations for the five variables (X1-X5) and plot the correlations. 
+Explain (in words) your inferences based on this exploratory analysis
+
+```{r}
+cor(df_survey.sc[,2:6])
+
+corrplot(cor(df_survey.sc[, 2:6]), order='hclust')
+
+```
+
+X1 and X3 are most highly positively correlated, X2 and X3 are most negatively correlated. This makes sense as X1 and X3 both rate the respect or attention the customer gets from the store, while X2 rates how much alone the salesperson leaves the user. 
+
+### Question 3
+Perform PCA on the data and show the results (including the summary of the PCA and the matrix showing the relationship between the factors and original attributes)
+
+```{r}
+df_survey.pc = prcomp(df_survey.sc[,2:6])
+summary(df_survey.pc)
+
+df_survey.pc$rotation
+```
+
+### Question 4
+
+The four equations are as follows:
+
+$$ PC1 = -0.55491712 \cdot X1 + 0.57063147 \cdot X2 - 0.57964069 \cdot X3 - 0.01698458 \cdot X4 + 0.17370927 \cdot X5 $$
+$$ PC2 = 0.2324895 \cdot X1 + 0.2117721 \cdot X2 + 0.1567520 \cdot X3 + 0.6859778 \cdot X4 + 0.6371534 \cdot X5 $$
+$$ PC3 = -0.2795639 \cdot X1 - 0.1832902 \cdot X2 + 0.3106045 \cdot X3 - 0.5610983 \cdot X4 + 0.6906101 \cdot X5 $$
+$$ PC4 = -0.7234233 \cdot X1 - 0.4621638 \cdot X2 + 0.1866707 \cdot X3 + 0.4611287 \cdot X4 - 0.1248104 \cdot X5 $$
+$$ PC5 = 0.19109786 \cdot X1 - 0.61833777 \cdot X2 - 0.71282845 \cdot X3 + 0.04092556 \cdot X4 + 0.26709683 \cdot X5 $$
+Here,
+
+X1 = I never go back to a store that had treated me with disrespect.
+X2 = I find salespeople who fawn over me irritating, I just expect them to courteous.
+X3 = I have a lot of questions when I shop, I greatly appreciate a salesperson who is willing to spend time answering my questions.
+X4 = I care little for the fancy displays in departmental stores.
+X5 = Discount stores are much more of a bargain than departmental stores.
+
+All responses are rated on the scale of 0 to 9, which are normalized by mean and standard deviation
+
+### Question 5
+How many factors or principal components should we retain? Explain your decision
+
+```{r}
+plot(df_survey.pc, type='l')
+```
+Based on the PCA summary and the scree plot, we select to keep two principal components, PC1 and PC2.
+1. PC1 captures 53.43% of the variance, while PC2 captures 37.04% of the variance. Both these components explain 90.48% of the variance in the dataset.
+2. Looking at the scree-plot, we observe that PC1 and PC2 are behind the 'elbow' of the curve. From to PC3 and after, the curve flattens out. In addition, the variances of PC1 and PC2 are above 1, meaning that the amount of information that each of these two principal components provide is greater than 1 times the information of each dimension of the original data.
+
+### Question 6
+Can you think of intuitive names for the first and second factors? What do these factors represent?
+Explain how you arrived at them. Hint: Use the equations that quantify the relationship between the original attributes and the factors from the PCA (from answer to Question 4) and focus on strong correlations.
+
+PC1 magnitude of variable coefficients rank: X3, X2, X1, X5, X4
+PC2 magnitude of variable coefficients rank: X4, X5, X1, X2, X3
+
+PC1 is highly correlated with X1(treating customers respectfully) and X3(salesperson willingness to assist customers).
+PC2 is highly correlated with X4(caring little about fancy displays in departmental stores) and 
+X5(discount stores are much more of a bargain than departmental stores).
+
+PC1 could be customer service
+PC2 could be value for money
+
+PC1 represents the assistance and support provided by a business to its customers during a purchase.
+High customer service includes aspects such as timely and effective communication, knowledgeable and friendly staff, quick resolution of problems and complaints.
+
+PC2 represents the perception of a customer for a product based on cost and quality. If a product is of high quality, durable, and meets customer's needs, and its price is reasonable or competitive, then a customer may perceive that they received good value for their money.
+
+### Question 7
+Now plot all the consumers on a two-dimensional map based on the first two principal components.
+Label the x and y-axis using the names from your answer to the previous question
+
+```{r}
+biplot(df_survey.pc, 
+       xlim=c(-1,1), 
+       ylim=c(-0.1,0.3),
+       xlab='Customer Service',
+       ylab='Value for Money')
+abline(h = 0, v = 0, col = 'gray60')
+
+```
+
+### Question 8
+Based on the plot from the previous answer, how many segments (roughly) do you find in the market?
+Hint: A segment is a group of consumers who are similar to each other in their tastes and preferences.
+
+Based on the above plot, we can identify 2 segments among the respondents of the survey. 
+The first segment prioritize cost and quality when visiting discount stores and departmental stores.
+The second segment prioritize customer service when visiting discount stores and departmental stores.
+
+### Question 9
+Segment 1 (characteristics)
+1. Value-conscious: Looking always for a good deal and making sure to get the best value.
+2. Willing to pay more for quality: Willing to pay a premium price for a product or service that meets their expectations of quality.
+3. Seek out reviews and recommendations: Doing research before making a purchase and seeking out reviews and recommendations from others to ensure they are getting a good deal.
+4. Prefer long-term relationships: Valuing long-term relationships with businesses that consistently provide them with high-quality products and services at a reasonable price.
+5. Pragmatic: Being practical in their purchasing decisions and not easily swayed by flashy marketing or branding.
+
+Segment 2 (characteristics)
+1. Loyalty: Tending to be more loyal to the companies which provide better customer service.
+2. Communication: Being more communicative and open about their needs and expectations. 
+3. Relationship-focused: Being more interested in building a long-term relationship with the company rather than just making a one-time purchase.
+4. Feedback-oriented: Willing to provide feedback on their experience with the company.
+
+### Question 10
+Which segment do you expect to be the most profitable and why? 
+Assuming the data to be representative, what is the size of this segment (in percentage)
+
+We expect segment 2 which values customer service more than anything else to be more profitable than segment 1. The reasons are:
+1. customers in this segment are loyal. They tend to stick to the company that provides them good customer service. 
+2. Customers in this segment tend to pay more if they receive good customer service.
+
+The size of this group could be around 30%.
+
+
+
+
