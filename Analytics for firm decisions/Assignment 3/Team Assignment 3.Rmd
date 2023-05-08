@@ -246,17 +246,18 @@ kable(lm_DF_tide64[1:4,], digits = 4)
 Yes, the estimates of own and cross price elasticities reveal an improvement over the model specification
 in question 4. 
 For the regression results of Tide 128 oz, we have the following:
-1. The magnitude of own price elasticity decreases more, being -2.3836. It is less extreme.
-2. The cross price elasticity of Tide 64 oz on Tide 128 oz is 0.2097 having a positive effect on the demand. That means when the price of Tide 64 oz increases, the demand of Tide 128 oz increases which makes sense (a Tide customer will choose a product of the same brand).
-3. The cross price elasticity of Wisk 64 oz on Tide 128 oz is 1.1648 having a positive effect on the demand. That means when the price of Wisk 64 oz increases, the demand of Tide 128 oz increases which makes sense (a Wisk customer will choose a premium brand when the price of a Wisk product increases).
+1. The magnitude of own price elasticity decreases in magnitude significantly to -0.4807.
+2. The cross price elasticity of Tide 64 oz on Tide 128 oz decreases down to 0.1242, having a positive effect on the demand. That means when the price of Tide 64 oz increases, the demand of Tide 128 oz increases which makes sense (a Tide customer will choose a product of the same brand).
+3. The cross price elasticity of Wisk 64 oz on Tide 128 oz becomes -0.3525, having a negative effect on the demand. That means when the price of Wisk 64 oz increases, the demand of Tide 128 oz decreases.
 
 For the regression results of Tide 64 oz, we have the following:
-1. The magnitude of own price elasticity decreases more, being -1.4867.
-2. The cross price elasticity of Tide 128 oz on Tide 64 oz is 0.9028 having a positive effect on the demand. That means when the price of Tide 128 oz increases, the demand of Tide 64 oz increases which makes sense (a Tide customer will choose a product of the same brand).
-3. The cross price elasticity of Wisk 64 oz on Tide 64 oz is -0.2809 having a negative effect on the demand. That means when the price of Wisk 64 oz increases, the demand of Tide 64 oz decreases which does not make more sense as it indicates that these products are complementary and not substitutes.
+1. The magnitude of own price elasticity increases in magnitude significantly to -1.2253.
+2. The cross price elasticity of Tide 128 oz on Tide 64 oz is -0.7578 having a negative effect on the demand. That means when the price of Tide 128 oz increases, the demand of Tide 64 oz decreases.
+3. The cross price elasticity of Wisk 64 oz on Tide 64 oz decreases in magnitude to -0.4476 having a negative effect on the demand. That means when the price of Wisk 64 oz increases, the demand of Tide 64 oz decreases.
 
-Compare the estimates to a slightly different regression with the log of unit sales, not log of velocity,
-as dependent variable
+Some of the cross-price elasticities for both of the products are negative which doesn't make sense. We have a hypothesis that it is because maybe the prices of all the three products are moving together. That is prices of all three products almost rise and fall together making them interactive with each other rather than independent.
+
+Now, comparing the estimates to the regression with the log of unit sales, not log of velocity, as dependent variable
 ```{r}
 reg_tide128_time_nonpromoted_fixed_2 <- lm(formula = log(q_tide128) ~ log(p_tide128) + log(p_tide64) +
                                            log(p_wisk64) + factor(week) + factor(store), data = detergent_DF_2)
