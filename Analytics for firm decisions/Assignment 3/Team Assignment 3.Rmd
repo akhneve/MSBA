@@ -275,6 +275,7 @@ We observe that there is no difference between the results of the regression hav
 This absence of difference is expected as we incorporate the store fixed effects in our model.
 
 ### Question 6: Pricing and Profitability Analysis
+
 Calculate base (regular) prices, using the data for the non-promoted store-weeks
 ```{r}
 base_price_tide128 <- mean(detergent_DF_2$p_tide128)
@@ -305,22 +306,130 @@ base_profit_tide64 <- base_volume_tide64*(base_price_tide64*(1-retail_margin)-ma
 base_price_tide <- base_profit_tide128 + base_profit_tide64
 base_price_tide
 ```
-Calculate the total new expected volume of Tide, i.e. the new volume of the 128 oz and 64 oz products,
-from the following price changes:
+
+Making the functions to calculate the exp volumes of tide 64 oz, tide 128 oz and profits of tide
+
+```{r}
+expected_volume_tide_64 <- function(delta_price_tide_128,delta_price_tide_64,model_64,base_volume_tide64){
+  volume = model_64$coefficients[["log(p_tide128)"]]*delta_price_tide_128 + model_64$coefficients[["log(p_tide64)"]]*delta_price_tide_64 + base_volume_tide64
+  return(volume)
+}
+
+expected_volume_tide_128 <- function(delta_price_tide_128,delta_price_tide_64,model_128,base_volume_tide128){
+  volume = model_128$coefficients[["log(p_tide128)"]]*delta_price_tide_128 + model_128$coefficients[["log(p_tide64)"]]*delta_price_tide_64 + base_volume_tide128
+  return(volume)
+}
+
+expected_profit_tide <- function(base_price_tide64,base_price_tide128,delta_price_tide_64,delta_price_tide_128,base_volume_tide64,base_volume_tide128,retail_margin,marginal_cost,model_64,model_128){
+  
+  profit_tide_64 = expected_volume_tide_64(delta_price_tide_128,delta_price_tide_64,model_64,base_volume_tide64)*(base_price_tide64*(1+delta_price_tide_64)*(1-retail_margin)-marginal_cost)
+  
+  profit_tide_128 = expected_volume_tide_128(delta_price_tide_128,delta_price_tide_64,model_128,base_volume_tide128)*(base_price_tide128*(1+delta_price_tide_128)*(1-retail_margin)-marginal_cost)
+  
+  profit_tide = profit_tide_64 + profit_tide_128
+  
+  return(profit_tide)
+}
+```
+
+Calculate the total new expected volume of Tide, i.e. the new volume of the 128 oz and 64 oz products, from the following price changes:
 
 A simultaneous 5 percent increase in the prices of Tide 128 and Tide 64
 ```{r}
-del_price_128 <- 0.05
-del_price_64 <- 0.05
+delta_price_tide_128 <- 0.05
+delta_price_tide_64 <- 0.05
 
-intercept_tide128 <- reg_tide128_time_nonpromoted_fixed_2$coefficients[[1]]
-elasticity_tide128 <- reg_tide128_time_nonpromoted_fixed_2$coefficients[[2]]
-elasticity_cross_tide128_64 <- reg_tide128_time_nonpromoted_fixed_2$coefficients[[3]]
+exp_vol_tide64_1 <-expected_volume_tide_64(delta_price_tide_128,delta_price_tide_64,reg_tide64_time_nonpromoted_fixed_2,base_volume_tide64)
+exp_vol_tide64_1
 
-intercept_tide64 <- reg_tide64_time_nonpromoted_fixed_2$coefficients[[1]]
-elasticity_tide64 <- reg_tide64_time_nonpromoted_fixed_2$coefficients[[3]]
-elasticity_cross_tide64_128 <- reg_tide64_time_nonpromoted_fixed_2$coefficients[[2]]
-
-demand_tide128_log <- intercept_tide128 + elasticity_tide128*log(-0.05) + elasticity_cross_tide128_64*log(0.05)
-
+exp_vol_tide128_1 <-expected_volume_tide_128(delta_price_tide_128,delta_price_tide_64,reg_tide128_time_nonpromoted_fixed_2,base_volume_tide128)
+exp_vol_tide128_1
 ```
+A simultaneous 5 percent decrease in the prices of Tide 128 and Tide 64
+```{r}
+delta_price_tide_128 <- -0.05
+delta_price_tide_64 <- -0.05
+
+exp_vol_tide64_2 <-expected_volume_tide_64(delta_price_tide_128,delta_price_tide_64,reg_tide64_time_nonpromoted_fixed_2,base_volume_tide64)
+exp_vol_tide64_2
+
+exp_vol_tide128_2 <-expected_volume_tide_128(delta_price_tide_128,delta_price_tide_64,reg_tide128_time_nonpromoted_fixed_2,base_volume_tide128)
+exp_vol_tide128_2
+```
+A simultaneous 5 percent increase in the price of Tide 128 and 5 percent decrease in the price of Tide 64
+```{r}
+delta_price_tide_128 <- 0.05
+delta_price_tide_64 <- -0.05
+
+exp_vol_tide64_3 <-expected_volume_tide_64(delta_price_tide_128,delta_price_tide_64,reg_tide64_time_nonpromoted_fixed_2,base_volume_tide64)
+exp_vol_tide64_3
+
+exp_vol_tide128_3 <-expected_volume_tide_128(delta_price_tide_128,delta_price_tide_64,reg_tide128_time_nonpromoted_fixed_2,base_volume_tide128)
+exp_vol_tide128_3
+```
+
+A simultaneous 5 percent decrease in the price of Tide 128 and 5 percent increase in the price of Tide 64
+```{r}
+delta_price_tide_128 <- -0.05
+delta_price_tide_64 <- 0.05
+
+exp_vol_tide64_4 <-expected_volume_tide_64(delta_price_tide_128,delta_price_tide_64,reg_tide64_time_nonpromoted_fixed_2,base_volume_tide64)
+exp_vol_tide64_4
+
+exp_vol_tide128_4 <-expected_volume_tide_128(delta_price_tide_128,delta_price_tide_64,reg_tide128_time_nonpromoted_fixed_2,base_volume_tide128)
+exp_vol_tide128_4
+```
+
+Calculate the total new expected profits for each of the price changes in the Q6.f. Are the prices of Tide approximately optimal, or do you recommend changes to the product-line pricing of Tide?
+
+A simultaneous 5 percent increase in the prices of Tide 128 and Tide 64
+```{r}
+delta_price_tide_128 <- 0.05
+delta_price_tide_64 <- 0.05
+
+expected_profit_1 <- expected_profit_tide(base_price_tide64,base_price_tide128,delta_price_tide_64,delta_price_tide_128,base_volume_tide64,base_volume_tide128,retail_margin,marginal_cost,reg_tide64_time_nonpromoted_fixed_2,reg_tide128_time_nonpromoted_fixed_2)
+expected_profit_1
+```
+
+A simultaneous 5 percent decrease in the prices of Tide 128 and Tide 64
+```{r}
+delta_price_tide_128 <- -0.05
+delta_price_tide_64 <- -0.05
+
+expected_profit_2 <- expected_profit_tide(base_price_tide64,base_price_tide128,delta_price_tide_64,delta_price_tide_128,base_volume_tide64,base_volume_tide128,retail_margin,marginal_cost,reg_tide64_time_nonpromoted_fixed_2,reg_tide128_time_nonpromoted_fixed_2)
+expected_profit_2
+```
+
+A simultaneous 5 percent increase in the price of Tide 128 and 5 percent decrease in the price of Tide 64
+```{r}
+delta_price_tide_128 <- 0.05
+delta_price_tide_64 <- -0.05
+
+expected_profit_3 <- expected_profit_tide(base_price_tide64,base_price_tide128,delta_price_tide_64,delta_price_tide_128,base_volume_tide64,base_volume_tide128,retail_margin,marginal_cost,reg_tide64_time_nonpromoted_fixed_2,reg_tide128_time_nonpromoted_fixed_2)
+expected_profit_3
+```
+
+A simultaneous 5 percent decrease in the price of Tide 128 and 5 percent increase in the price of Tide 64
+```{r}
+delta_price_tide_128 <- -0.05
+delta_price_tide_64 <- 0.05
+
+expected_profit_4 <- expected_profit_tide(base_price_tide64,base_price_tide128,delta_price_tide_64,delta_price_tide_128,base_volume_tide64,base_volume_tide128,retail_margin,marginal_cost,reg_tide64_time_nonpromoted_fixed_2,reg_tide128_time_nonpromoted_fixed_2)
+expected_profit_4
+```
+
+: Table of quantities sold and profits when Tide changes the price of Tide 64 and 128. Price changes are shown in percentages
+
++---------------+---------------+-------------+--------------+---------------+
+| del_price_128 | del_price_64  | q_128       | q_64         | Total profits |          
++===============+===============+=============+==============+===============+
+| 0.05          | 0.05          |   282954.2  |    247068    |    2614883    |
++---------------+---------------+-------------+--------------+---------------+
+| -0.05         | -0.05         |   282954.4  |    247068    |    2364484    |
++---------------+---------------+-------------+--------------+---------------+
+| 0.05          | -0.05         |   282954.3  |    247067.9  |    2521521    |
++---------------+---------------+-------------+--------------+---------------+
+| -0.05         | 0.05          |   282954.2  |    247068    |    2457846    |
++---------------+---------------+-------------+--------------+---------------+
+
+
